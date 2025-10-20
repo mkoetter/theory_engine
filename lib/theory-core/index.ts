@@ -12,6 +12,18 @@ import { classifyChord } from './classify';
 import { analyzeFunctionalLabel, detectCadences } from './analysis';
 import { calculateTensionCurve } from './tension';
 import { planTransition as planKeyTransition } from './transition';
+import {
+  getDiatonicNotes,
+  getScaleDegrees,
+  getChordQualities,
+  rotateCircle,
+  areEnharmonic,
+  getCircleData,
+  type CircleData,
+  CIRCLE_OF_FIFTHS_ORDER,
+  MODE_ORDER,
+  getClassicKeySignatures
+} from './circle';
 import type {
   BlockKey,
   ChordClassification,
@@ -25,6 +37,7 @@ export type EnharmonicPolicy = "key-signature" | "flat" | "sharp";
  * TheoryCore API - Main interface for music theory operations
  */
 export interface TheoryCore {
+  // Palette and progression
   buildPalette(key: BlockKey, opts: { sevenths: boolean }): string[];
   romansToAbsolute(tonic: string, romans: string[], enharmonic?: EnharmonicPolicy): string[];
   absoluteToRomans(tonic: string, chords: string[]): string[];
@@ -32,6 +45,14 @@ export interface TheoryCore {
   analyzeProgression(romans: string[], key: BlockKey): ProgressionAnalysis;
   suggestNext(ctxRomans: string[], key: BlockKey, style?: "pop" | "jazz" | "folk"): string[];
   planTransition(from: BlockKey, to: BlockKey): TransitionPlan;
+
+  // Circle of Fifths
+  getDiatonicNotes(key: BlockKey): string[];
+  getScaleDegrees(key: BlockKey): Array<{ note: string; roman: string; degree: number }>;
+  getChordQualities(key: BlockKey): Array<{ note: string; quality: string; symbol: string }>;
+  rotateCircle(key: BlockKey, direction: 'clockwise' | 'counterclockwise', rotateBy: 'tonic' | 'mode'): BlockKey;
+  areEnharmonic(key1: BlockKey, key2: BlockKey): boolean;
+  getCircleData(key: BlockKey): CircleData;
 }
 
 /**
@@ -39,10 +60,19 @@ export interface TheoryCore {
  */
 export function createTheoryCore(): TheoryCore {
   return {
+    // Palette and progression
     buildPalette,
     romansToAbsolute,
     absoluteToRomans,
     classifyChord,
+
+    // Circle of Fifths
+    getDiatonicNotes,
+    getScaleDegrees,
+    getChordQualities,
+    rotateCircle,
+    areEnharmonic,
+    getCircleData,
 
     // Full implementations for Milestone 2
     analyzeProgression(romans: string[], key: BlockKey): ProgressionAnalysis {
@@ -114,4 +144,15 @@ export function createTheoryCore(): TheoryCore {
 
 // Export utility functions
 export { buildPalette, romansToAbsolute, absoluteToRomans, parseRoman, classifyChord };
-export type { BlockKey, ChordClassification, ProgressionAnalysis, TransitionPlan };
+export {
+  getDiatonicNotes,
+  getScaleDegrees,
+  getChordQualities,
+  rotateCircle,
+  areEnharmonic,
+  getCircleData,
+  CIRCLE_OF_FIFTHS_ORDER,
+  MODE_ORDER,
+  getClassicKeySignatures
+};
+export type { BlockKey, ChordClassification, ProgressionAnalysis, TransitionPlan, CircleData };
