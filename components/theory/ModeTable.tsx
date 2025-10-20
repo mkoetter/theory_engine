@@ -1,94 +1,60 @@
 "use client";
 
-import { useState } from 'react';
-import { MODE_ORDER } from '@/lib/theory-core';
 import type { BlockKey } from '@/state/theory.types';
 
 interface ModeTableProps {
   selectedMode: BlockKey['mode'];
   onModeChange: (mode: BlockKey['mode']) => void;
-  onDragRotate: (direction: 'up' | 'down') => void;
 }
 
 /**
- * Mode selection table with drag-to-rotate.
- * Ordered from brightest (lydian) to darkest (locrian).
+ * ModeTable - Displays the list of modes for selection.
  */
-export function ModeTable({ selectedMode, onModeChange, onDragRotate }: ModeTableProps) {
-  const [dragStart, setDragStart] = useState<number | null>(null);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setDragStart(e.clientY);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (dragStart === null) return;
-
-    const delta = dragStart - e.clientY;
-    if (Math.abs(delta) > 30) {
-      // Drag up = brighter (add sharps)
-      // Drag down = darker (add flats)
-      onDragRotate(delta > 0 ? 'up' : 'down');
-      setDragStart(e.clientY);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setDragStart(null);
-  };
-
-  const getModeName = (mode: BlockKey['mode']) => {
-    return mode.charAt(0).toUpperCase() + mode.slice(1);
-  };
+export function ModeTable({ selectedMode, onModeChange }: ModeTableProps) {
+  const modes: Array<{ value: BlockKey['mode']; label: string }> = [
+    { value: 'lydian', label: 'Lydian' },
+    { value: 'major', label: 'Major / Ionian' },
+    { value: 'mixolydian', label: 'Mixolydian' },
+    { value: 'dorian', label: 'Dorian' },
+    { value: 'minor', label: 'N. Minor / Aeolian' },
+    { value: 'phrygian', label: 'Phrygian' },
+    { value: 'locrian', label: 'Locrian' },
+  ];
 
   return (
-    <div
-      style={{
-        border: '2px solid #333',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        userSelect: 'none',
-        cursor: dragStart !== null ? 'grabbing' : 'grab',
-      }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', minWidth: '180px' }}>
       <div
         style={{
-          background: '#333',
-          color: 'white',
           padding: '0.5rem',
+          background: '#000',
+          color: 'white',
           textAlign: 'center',
-          fontWeight: '600',
+          fontWeight: 'bold',
           fontSize: '0.875rem',
         }}
       >
         Mode
       </div>
-
-      <div>
-        {MODE_ORDER.map((mode) => {
-          const isSelected = mode === selectedMode;
+      <div style={{ border: '1px solid #333' }}>
+        {modes.map(({ value, label }) => {
+          const isSelected = value === selectedMode;
 
           return (
             <div
-              key={mode}
-              onClick={() => onModeChange(mode)}
+              key={value}
+              onClick={() => onModeChange(value)}
               style={{
-                padding: '0.5rem 1rem',
-                background: isSelected ? '#2196F3' : 'white',
-                color: isSelected ? 'white' : '#333',
+                padding: '0.5rem',
+                background: isSelected ? '#FFA500' : 'white',
                 borderBottom: '1px solid #ddd',
                 cursor: 'pointer',
-                fontWeight: isSelected ? '600' : '400',
-                fontSize: '0.875rem',
-                transition: 'background 0.15s',
+                textAlign: 'center',
+                fontWeight: isSelected ? 'bold' : 'normal',
+                transition: 'background 0.2s',
               }}
               onMouseEnter={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.background = '#f5f5f5';
+                  e.currentTarget.style.background = '#FFE4B5';
                 }
               }}
               onMouseLeave={(e) => {
@@ -97,24 +63,27 @@ export function ModeTable({ selectedMode, onModeChange, onDragRotate }: ModeTabl
                 }
               }}
             >
-              {getModeName(mode)}
+              {label}
             </div>
           );
         })}
       </div>
 
-      <div
+      <a
+        href="#"
         style={{
+          display: 'block',
           padding: '0.5rem',
-          background: '#f5f5f5',
-          fontSize: '0.75rem',
-          color: '#666',
+          background: '#B0E0E6',
           textAlign: 'center',
-          borderTop: '1px solid #ddd',
+          textDecoration: 'none',
+          color: '#000',
+          fontSize: '0.875rem',
+          borderTop: '1px solid #333',
         }}
       >
-        Drag ↑ = brighter, ↓ = darker
-      </div>
+        User's Guide
+      </a>
     </div>
   );
 }

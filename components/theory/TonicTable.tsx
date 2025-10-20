@@ -1,75 +1,46 @@
 "use client";
 
-import { useState } from 'react';
-import { CIRCLE_OF_FIFTHS_ORDER, getClassicKeySignatures } from '@/lib/theory-core';
-
 interface TonicTableProps {
   selectedTonic: string;
   onTonicChange: (tonic: string) => void;
-  onDragRotate: (direction: 'up' | 'down') => void;
 }
 
 /**
- * Tonic selection table with drag-to-rotate.
- * White rows = 15 classic key signatures
- * Gray rows = less common enharmonic keys
+ * TonicTable - Displays the list of tonic notes for selection.
+ * White rows are classic key signatures, gray rows are less common.
  */
-export function TonicTable({ selectedTonic, onTonicChange, onDragRotate }: TonicTableProps) {
-  const [dragStart, setDragStart] = useState<number | null>(null);
+export function TonicTable({ selectedTonic, onTonicChange }: TonicTableProps) {
+  // Classic key signatures (white background)
+  const classicTonics = ['B', 'E', 'A', 'D', 'G', 'C', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'];
 
-  const classicKeys = getClassicKeySignatures();
-  const allKeys = CIRCLE_OF_FIFTHS_ORDER;
+  // Less common tonics (gray background)
+  const rareTonics = ['B#', 'E#', 'A#', 'D#', 'G#', 'C#', 'F#'];
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setDragStart(e.clientY);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (dragStart === null) return;
-
-    const delta = dragStart - e.clientY;
-    if (Math.abs(delta) > 30) {
-      // Drag up = clockwise (add sharps)
-      // Drag down = counterclockwise (add flats)
-      onDragRotate(delta > 0 ? 'up' : 'down');
-      setDragStart(e.clientY);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setDragStart(null);
-  };
+  const allTonics = [...classicTonics, ...rareTonics];
 
   return (
-    <div
-      style={{
-        border: '2px solid #333',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        userSelect: 'none',
-        cursor: dragStart !== null ? 'grabbing' : 'grab',
-      }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', minWidth: '120px' }}>
       <div
         style={{
-          background: '#333',
-          color: 'white',
           padding: '0.5rem',
+          background: '#000',
+          color: 'white',
           textAlign: 'center',
-          fontWeight: '600',
+          fontWeight: 'bold',
           fontSize: '0.875rem',
         }}
       >
         Tonic
       </div>
-
-      <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-        {allKeys.map((tonic) => {
-          const isClassic = classicKeys.includes(tonic);
+      <div
+        style={{
+          border: '1px solid #333',
+          maxHeight: '400px',
+          overflowY: 'auto',
+        }}
+      >
+        {allTonics.map((tonic) => {
+          const isRare = rareTonics.includes(tonic);
           const isSelected = tonic === selectedTonic;
 
           return (
@@ -77,27 +48,26 @@ export function TonicTable({ selectedTonic, onTonicChange, onDragRotate }: Tonic
               key={tonic}
               onClick={() => onTonicChange(tonic)}
               style={{
-                padding: '0.5rem 1rem',
+                padding: '0.5rem',
                 background: isSelected
-                  ? '#2196F3'
-                  : isClassic
-                  ? 'white'
-                  : '#e0e0e0',
-                color: isSelected ? 'white' : '#333',
+                  ? '#FFA500'
+                  : isRare
+                  ? '#E0E0E0'
+                  : 'white',
                 borderBottom: '1px solid #ddd',
                 cursor: 'pointer',
-                fontWeight: isSelected ? '600' : '400',
-                fontSize: '0.875rem',
-                transition: 'background 0.15s',
+                textAlign: 'center',
+                fontWeight: isSelected ? 'bold' : 'normal',
+                transition: 'background 0.2s',
               }}
               onMouseEnter={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.background = isClassic ? '#f5f5f5' : '#d0d0d0';
+                  e.currentTarget.style.background = '#FFE4B5';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.background = isClassic ? 'white' : '#e0e0e0';
+                  e.currentTarget.style.background = isRare ? '#E0E0E0' : 'white';
                 }
               }}
             >
@@ -105,19 +75,6 @@ export function TonicTable({ selectedTonic, onTonicChange, onDragRotate }: Tonic
             </div>
           );
         })}
-      </div>
-
-      <div
-        style={{
-          padding: '0.5rem',
-          background: '#f5f5f5',
-          fontSize: '0.75rem',
-          color: '#666',
-          textAlign: 'center',
-          borderTop: '1px solid #ddd',
-        }}
-      >
-        Drag ↑ = sharps, ↓ = flats
       </div>
     </div>
   );
