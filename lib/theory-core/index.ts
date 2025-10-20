@@ -13,22 +13,23 @@ import { analyzeFunctionalLabel, detectCadences } from './analysis';
 import { calculateTensionCurve } from './tension';
 import { planTransition as planKeyTransition } from './transition';
 import {
+  getCircleOfFifthsNotes,
   getDiatonicNotes,
   getScaleDegrees,
   getChordQualities,
-  rotateCircle,
-  areEnharmonic,
-  getCircleData,
-  type CircleData,
-  CIRCLE_OF_FIFTHS_ORDER,
-  MODE_ORDER,
-  getClassicKeySignatures
+  getCirclePosition,
+  getEnharmonicName,
+  getCircleOfFifthsData,
 } from './circle';
 import type {
   BlockKey,
   ChordClassification,
   ProgressionAnalysis,
   TransitionPlan,
+  CircleNote,
+  CircleDegree,
+  CircleChordQuality,
+  CircleOfFifthsData,
 } from '@/state/theory.types';
 
 export type EnharmonicPolicy = "key-signature" | "flat" | "sharp";
@@ -37,22 +38,25 @@ export type EnharmonicPolicy = "key-signature" | "flat" | "sharp";
  * TheoryCore API - Main interface for music theory operations
  */
 export interface TheoryCore {
-  // Palette and progression
+  // Chord palette and progression
   buildPalette(key: BlockKey, opts: { sevenths: boolean }): string[];
   romansToAbsolute(tonic: string, romans: string[], enharmonic?: EnharmonicPolicy): string[];
   absoluteToRomans(tonic: string, chords: string[]): string[];
   classifyChord(roman: string, key: BlockKey): ChordClassification;
+
+  // Progression analysis
   analyzeProgression(romans: string[], key: BlockKey): ProgressionAnalysis;
   suggestNext(ctxRomans: string[], key: BlockKey, style?: "pop" | "jazz" | "folk"): string[];
   planTransition(from: BlockKey, to: BlockKey): TransitionPlan;
 
   // Circle of Fifths
-  getDiatonicNotes(key: BlockKey): string[];
-  getScaleDegrees(key: BlockKey): Array<{ note: string; roman: string; degree: number }>;
-  getChordQualities(key: BlockKey): Array<{ note: string; quality: string; symbol: string }>;
-  rotateCircle(key: BlockKey, direction: 'clockwise' | 'counterclockwise', rotateBy: 'tonic' | 'mode'): BlockKey;
-  areEnharmonic(key1: BlockKey, key2: BlockKey): boolean;
-  getCircleData(key: BlockKey): CircleData;
+  getCircleOfFifthsNotes(): string[];
+  getDiatonicNotes(key: BlockKey): CircleNote[];
+  getScaleDegrees(key: BlockKey): CircleDegree[];
+  getChordQualities(key: BlockKey): CircleChordQuality[];
+  getCirclePosition(tonic: string, mode: BlockKey['mode']): number;
+  getEnharmonicName(note: string, preferSharps: boolean): string;
+  getCircleOfFifthsData(key: BlockKey): CircleOfFifthsData;
 }
 
 /**
@@ -60,19 +64,10 @@ export interface TheoryCore {
  */
 export function createTheoryCore(): TheoryCore {
   return {
-    // Palette and progression
     buildPalette,
     romansToAbsolute,
     absoluteToRomans,
     classifyChord,
-
-    // Circle of Fifths
-    getDiatonicNotes,
-    getScaleDegrees,
-    getChordQualities,
-    rotateCircle,
-    areEnharmonic,
-    getCircleData,
 
     // Full implementations for Milestone 2
     analyzeProgression(romans: string[], key: BlockKey): ProgressionAnalysis {
@@ -139,20 +134,40 @@ export function createTheoryCore(): TheoryCore {
     planTransition(from: BlockKey, to: BlockKey): TransitionPlan {
       return planKeyTransition(from, to);
     },
+
+    // Circle of Fifths functions
+    getCircleOfFifthsNotes,
+    getDiatonicNotes,
+    getScaleDegrees,
+    getChordQualities,
+    getCirclePosition,
+    getEnharmonicName,
+    getCircleOfFifthsData,
   };
 }
 
 // Export utility functions
 export { buildPalette, romansToAbsolute, absoluteToRomans, parseRoman, classifyChord };
+
+// Export circle functions
 export {
+  getCircleOfFifthsNotes,
   getDiatonicNotes,
   getScaleDegrees,
   getChordQualities,
-  rotateCircle,
-  areEnharmonic,
-  getCircleData,
-  CIRCLE_OF_FIFTHS_ORDER,
-  MODE_ORDER,
-  getClassicKeySignatures
+  getCirclePosition,
+  getEnharmonicName,
+  getCircleOfFifthsData,
 };
-export type { BlockKey, ChordClassification, ProgressionAnalysis, TransitionPlan, CircleData };
+
+// Export types
+export type {
+  BlockKey,
+  ChordClassification,
+  ProgressionAnalysis,
+  TransitionPlan,
+  CircleNote,
+  CircleDegree,
+  CircleChordQuality,
+  CircleOfFifthsData,
+};

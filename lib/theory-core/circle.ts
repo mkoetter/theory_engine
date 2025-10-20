@@ -1,269 +1,257 @@
 import { Scale, Note } from 'tonal';
-import type { BlockKey } from '@/state/theory.types';
-import { buildPalette } from './palette';
+import type {
+  BlockKey,
+  CircleNote,
+  CircleDegree,
+  CircleChordQuality,
+  CircleOfFifthsData,
+  ChordQuality,
+} from '@/state/theory.types';
 
 /**
- * Circle of Fifths - Core Theory APIs
- *
- * Provides the underlying logic for interactive circle of fifths visualization.
- * All capabilities are in the theory engine, UI is just a test harness.
+ * The 12 chromatic notes in circle-of-fifths order.
+ * Starting from F and going clockwise (adding sharps).
  */
-
-/**
- * Standard circle of fifths order (clockwise from C).
- * Each step adds one sharp, or removes one flat.
- */
-export const CIRCLE_OF_FIFTHS_ORDER = [
-  'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#',  // Sharp side
-  'G#', 'D#', 'A#',                           // Enharmonic/rare
-  'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'    // Flat side (going backwards)
+const CIRCLE_OF_FIFTHS_NOTES = [
+  'F', 'C', 'G', 'D', 'A', 'E', 'B',
+  'F#', 'C#', 'G#', 'D#', 'A#'
 ];
 
 /**
- * Mode order from brightest (most sharps) to darkest (most flats).
- * Moving up adds sharps, moving down adds flats.
+ * Mode offsets from major in semitones.
+ * Used to calculate rotation when changing modes.
  */
-export const MODE_ORDER: BlockKey['mode'][] = [
-  'lydian',      // Brightest (+1 sharp vs major)
-  'major',       // Standard
-  'mixolydian',  // -1 sharp
-  'dorian',      // -2 sharps
-  'aeolian',     // -3 sharps (natural minor)
-  'phrygian',    // -4 sharps
-  'locrian'      // Darkest (-5 sharps)
-];
+const MODE_OFFSETS: Record<string, number> = {
+  'lydian': 1,      // +1 fifth from major
+  'major': 0,       // baseline
+  'mixolydian': -1, // -1 fifth from major
+  'dorian': -2,     // -2 fifths from major
+  'minor': -3,      // -3 fifths from major (natural minor = aeolian)
+  'aeolian': -3,    // same as natural minor
+  'phrygian': -4,   // -4 fifths from major
+  'locrian': -5,    // -5 fifths from major
+};
 
 /**
- * Get the 15 classic key signatures (white rows in tonic table).
- * From Cb (7 flats) through C# (7 sharps).
+ * Get all 12 chromatic notes in circle-of-fifths order.
  */
-export function getClassicKeySignatures(): string[] {
-  return [
-    'C#', 'F#', 'B', 'E', 'A', 'D', 'G', 'C',  // Sharp keys
-    'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'    // Flat keys
-  ];
+export function getCircleOfFifthsNotes(): string[] {
+  return [...CIRCLE_OF_FIFTHS_NOTES];
 }
 
 /**
- * Get the 7 diatonic notes for a given key and mode.
- * Returns notes in circle of fifths order (not scale order).
+ * Get the position (0-11) of a note on the circle of fifths.
  */
-export function getDiatonicNotes(key: BlockKey): string[] {
-  let scaleName = `${key.tonic} ${key.mode}`;
-
-  if (key.mode === 'minor') {
-    scaleName = `${key.tonic} ${key.minorVariant || 'natural'} minor`;
-  } else if (key.mode === 'aeolian') {
-    scaleName = `${key.tonic} minor`;  // Aeolian is natural minor
-  }
-
-  const scale = Scale.get(scaleName);
-
-  if (!scale.notes.length) return [];
-
-  // Return notes in circle of fifths order
-  return sortByCircleOrder(scale.notes);
+function getNotePosition(note: string): number {
+  const normalizedNote = Note.get(note).pc; // Get pitch class (removes octave)
+  const position = CIRCLE_OF_FIFTHS_NOTES.findIndex(n => Note.get(n).pc === normalizedNote);
+  return position >= 0 ? position : 0;
 }
 
 /**
- * Sort notes by circle of fifths order.
+ * Get which notes are diatonic to a given key.
+ * Returns array of 12 CircleNote objects with isDiatonic flag.
  */
-function sortByCircleOrder(notes: string[]): string[] {
-  const circleOrder = [
-    'F', 'C', 'G', 'D', 'A', 'E', 'B',
-    'Fb', 'Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb',
-    'F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'
-  ];
+export function getDiatonicNotes(key: BlockKey): CircleNote[] {
+  const scale = getScaleForKey(key);
+  const diatonicPitchClasses = scale.notes.map(note => Note.get(note).pc);
 
-  return notes
-    .map(note => Note.get(note).pc) // Get pitch class (remove octave)
-    .sort((a, b) => {
-      const indexA = circleOrder.indexOf(a);
-      const indexB = circleOrder.indexOf(b);
-      return indexA - indexB;
-    });
-}
-
-/**
- * Get scale degrees with roman numeral labels for a key/mode.
- * Returns array of 7 items with note and roman numeral.
- */
-export function getScaleDegrees(key: BlockKey): Array<{ note: string; roman: string; degree: number }> {
-  let scaleName = `${key.tonic} ${key.mode}`;
-
-  if (key.mode === 'minor') {
-    scaleName = `${key.tonic} ${key.minorVariant || 'natural'} minor`;
-  } else if (key.mode === 'aeolian') {
-    scaleName = `${key.tonic} minor`;
-  }
-
-  const scale = Scale.get(scaleName);
-
-  if (!scale.notes.length) return [];
-
-  // Get roman numerals for each degree
-  const romans = getRomanNumeralsForMode(key.mode);
-
-  return scale.notes.map((note, index) => ({
-    note: Note.get(note).pc,
-    roman: romans[index],
-    degree: index + 1
-  }));
-}
-
-/**
- * Get roman numerals for each scale degree based on mode.
- */
-function getRomanNumeralsForMode(mode: BlockKey['mode']): string[] {
-  switch (mode) {
-    case 'major':
-      return ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
-
-    case 'minor':
-    case 'aeolian':
-      return ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'];
-
-    case 'dorian':
-      return ['i', 'ii', 'III', 'IV', 'v', 'vi°', 'VII'];
-
-    case 'phrygian':
-      return ['i', 'II', 'III', 'iv', 'v°', 'VI', 'vii'];
-
-    case 'lydian':
-      return ['I', 'II', 'iii', '#iv°', 'V', 'vi', 'vii'];
-
-    case 'mixolydian':
-      return ['I', 'ii', 'iii°', 'IV', 'v', 'vi', 'VII'];
-
-    case 'locrian':
-      return ['i°', 'II', 'iii', 'iv', 'V', 'VI', 'vii'];
-
-    default:
-      return ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
-  }
-}
-
-/**
- * Get chord qualities for each scale degree.
- * Returns array of 7 chord quality descriptors.
- */
-export function getChordQualities(key: BlockKey): Array<{
-  note: string;
-  quality: 'major' | 'minor' | 'diminished' | 'augmented';
-  symbol: string;
-}> {
-  const romans = getRomanNumeralsForMode(key.mode);
-  const scale = Scale.get(`${key.tonic} ${key.mode}`);
-
-  return scale.notes.map((note, index) => {
-    const roman = romans[index];
-    const quality = getQualityFromRoman(roman);
+  return CIRCLE_OF_FIFTHS_NOTES.map((note, position) => {
+    const notePitchClass = Note.get(note).pc;
+    const isDiatonic = diatonicPitchClasses.includes(notePitchClass);
 
     return {
-      note: Note.get(note).pc,
-      quality,
-      symbol: getSymbolForQuality(quality)
+      note,
+      position,
+      isDiatonic,
     };
   });
 }
 
 /**
- * Determine chord quality from roman numeral.
+ * Get scale degrees with Roman numerals positioned on the circle.
+ * Returns array of 7 CircleDegree objects.
  */
-function getQualityFromRoman(roman: string): 'major' | 'minor' | 'diminished' | 'augmented' {
-  if (roman.includes('°')) return 'diminished';
-  if (roman.includes('+')) return 'augmented';
-  if (roman === roman.toUpperCase()) return 'major';
-  return 'minor';
+export function getScaleDegrees(key: BlockKey): CircleDegree[] {
+  const scale = getScaleForKey(key);
+  const tonicPosition = getNotePosition(key.tonic);
+
+  // Get the diatonic roman numerals for this key
+  const romans = getRomanNumeralsForKey(key);
+
+  const degrees: CircleDegree[] = [];
+
+  scale.notes.forEach((note, degreeIndex) => {
+    const position = getNotePosition(note);
+    const roman = romans[degreeIndex] || 'I';
+    const isTonic = degreeIndex === 0;
+
+    degrees.push({
+      position,
+      roman,
+      isTonic,
+    });
+  });
+
+  return degrees;
 }
 
 /**
- * Get display symbol for chord quality.
+ * Get chord qualities for each diatonic position on the circle.
+ * Returns array of 7 CircleChordQuality objects.
  */
-function getSymbolForQuality(quality: string): string {
-  switch (quality) {
-    case 'major': return '';
-    case 'minor': return 'm';
-    case 'diminished': return '°';
-    case 'augmented': return '+';
-    default: return '';
-  }
+export function getChordQualities(key: BlockKey): CircleChordQuality[] {
+  const scale = getScaleForKey(key);
+  const qualities: CircleChordQuality[] = [];
+
+  // Build triads from each scale degree
+  scale.notes.forEach((root, degreeIndex) => {
+    const third = scale.notes[(degreeIndex + 2) % 7];
+    const fifth = scale.notes[(degreeIndex + 4) % 7];
+
+    const quality = determineTriadQuality(root, third, fifth);
+    const position = getNotePosition(root);
+
+    qualities.push({
+      position,
+      quality,
+    });
+  });
+
+  return qualities;
 }
 
 /**
- * Rotate the circle clockwise (add sharps) or counterclockwise (add flats).
- * Returns the new tonic and mode.
+ * Get the circle position (0-11) for a given key/mode combination.
+ * Used to calculate rotation offset.
  */
-export function rotateCircle(
-  currentKey: BlockKey,
-  direction: 'clockwise' | 'counterclockwise',
-  rotateBy: 'tonic' | 'mode'
-): BlockKey {
-  if (rotateBy === 'tonic') {
-    // Rotate tonic in circle of fifths
-    const tonicIndex = CIRCLE_OF_FIFTHS_ORDER.indexOf(currentKey.tonic);
-    const newIndex = direction === 'clockwise'
-      ? (tonicIndex + 1) % CIRCLE_OF_FIFTHS_ORDER.length
-      : (tonicIndex - 1 + CIRCLE_OF_FIFTHS_ORDER.length) % CIRCLE_OF_FIFTHS_ORDER.length;
+export function getCirclePosition(tonic: string, mode: BlockKey['mode']): number {
+  const tonicPosition = getNotePosition(tonic);
+  const modeOffset = MODE_OFFSETS[mode] || 0;
 
-    return {
-      ...currentKey,
-      tonic: CIRCLE_OF_FIFTHS_ORDER[newIndex]
-    };
-  } else {
-    // Rotate mode
-    const modeIndex = MODE_ORDER.indexOf(currentKey.mode);
-    const newIndex = direction === 'clockwise'
-      ? (modeIndex - 1 + MODE_ORDER.length) % MODE_ORDER.length  // Up = brighter = clockwise
-      : (modeIndex + 1) % MODE_ORDER.length;  // Down = darker = counterclockwise
+  // Calculate final position with wrapping
+  let position = tonicPosition + modeOffset;
+  while (position < 0) position += 12;
+  while (position >= 12) position -= 12;
 
-    return {
-      ...currentKey,
-      mode: MODE_ORDER[newIndex]
-    };
-  }
+  return position;
 }
 
 /**
- * Check if two keys are enharmonic (same notes, different spelling).
+ * Get enharmonic spelling for a note based on key signature preference.
+ * Returns proper spelling (e.g., F# vs Gb) for display.
  */
-export function areEnharmonic(key1: BlockKey, key2: BlockKey): boolean {
-  const notes1 = getDiatonicNotes(key1);
-  const notes2 = getDiatonicNotes(key2);
+export function getEnharmonicName(note: string, preferSharps: boolean): string {
+  const pitchClass = Note.get(note).pc;
 
-  if (notes1.length !== notes2.length) return false;
-
-  // Compare enharmonic equivalents
-  const normalized1 = notes1.map(n => Note.get(n).chroma).sort();
-  const normalized2 = notes2.map(n => Note.get(n).chroma).sort();
-
-  return JSON.stringify(normalized1) === JSON.stringify(normalized2);
-}
-
-/**
- * Get all information needed for circle visualization.
- */
-export interface CircleData {
-  key: BlockKey;
-  diatonicNotes: string[];
-  degrees: Array<{ note: string; roman: string; degree: number }>;
-  chordQualities: Array<{ note: string; quality: string; symbol: string }>;
-  tonicIndex: number;
-}
-
-export function getCircleData(key: BlockKey): CircleData {
-  const diatonicNotes = getDiatonicNotes(key);
-  const degrees = getScaleDegrees(key);
-  const chordQualities = getChordQualities(key);
-
-  // Find which note is the tonic for marking
-  const tonicIndex = degrees.findIndex(d => d.degree === 1);
-
-  return {
-    key,
-    diatonicNotes,
-    degrees,
-    chordQualities,
-    tonicIndex
+  // Map of pitch classes to their sharp and flat spellings
+  const enharmonicMap: Record<string, { sharp: string; flat: string }> = {
+    'C': { sharp: 'C', flat: 'C' },
+    'C#': { sharp: 'C#', flat: 'Db' },
+    'D': { sharp: 'D', flat: 'D' },
+    'D#': { sharp: 'D#', flat: 'Eb' },
+    'E': { sharp: 'E', flat: 'E' },
+    'F': { sharp: 'F', flat: 'F' },
+    'F#': { sharp: 'F#', flat: 'Gb' },
+    'G': { sharp: 'G', flat: 'G' },
+    'G#': { sharp: 'G#', flat: 'Ab' },
+    'A': { sharp: 'A', flat: 'A' },
+    'A#': { sharp: 'A#', flat: 'Bb' },
+    'B': { sharp: 'B', flat: 'B' },
   };
+
+  const mapping = enharmonicMap[pitchClass];
+  if (!mapping) return note;
+
+  return preferSharps ? mapping.sharp : mapping.flat;
+}
+
+/**
+ * Get complete Circle of Fifths data for a given key.
+ * Convenience function that returns all data needed to render the circle.
+ */
+export function getCircleOfFifthsData(key: BlockKey): CircleOfFifthsData {
+  return {
+    notes: getDiatonicNotes(key),
+    degrees: getScaleDegrees(key),
+    chordQualities: getChordQualities(key),
+    tonicPosition: getNotePosition(key.tonic),
+  };
+}
+
+// Helper functions
+
+/**
+ * Get the Tonal.js scale for a given key.
+ */
+function getScaleForKey(key: BlockKey): ReturnType<typeof Scale.get> {
+  let scaleName = `${key.tonic} ${key.mode}`;
+
+  if (key.mode === 'minor') {
+    scaleName = `${key.tonic} minor`;
+    if (key.minorVariant === 'harmonic') {
+      scaleName = `${key.tonic} harmonic minor`;
+    } else if (key.minorVariant === 'melodic') {
+      scaleName = `${key.tonic} melodic minor`;
+    }
+  }
+
+  return Scale.get(scaleName);
+}
+
+/**
+ * Get Roman numerals for each scale degree in a given key.
+ */
+function getRomanNumeralsForKey(key: BlockKey): string[] {
+  if (key.mode === 'major') {
+    return ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+  }
+
+  if (key.mode === 'minor') {
+    if (key.minorVariant === 'harmonic') {
+      return ['i', 'ii°', 'III+', 'iv', 'V', 'VI', 'vii°'];
+    }
+    // Natural minor (aeolian)
+    return ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'];
+  }
+
+  // Other modes - determine based on mode characteristics
+  const modeRomans: Record<string, string[]> = {
+    'dorian': ['i', 'ii', 'III', 'IV', 'v', 'vi°', 'VII'],
+    'phrygian': ['i', 'II', 'III', 'iv', 'v°', 'VI', 'vii'],
+    'lydian': ['I', 'II', 'iii', '#iv°', 'V', 'vi', 'vii'],
+    'mixolydian': ['I', 'ii', 'iii°', 'IV', 'v', 'vi', 'VII'],
+    'aeolian': ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'],
+    'locrian': ['i°', 'II', 'iii', 'iv', 'V', 'VI', 'vii'],
+  };
+
+  return modeRomans[key.mode] || ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+}
+
+/**
+ * Determine triad quality from root, third, and fifth notes.
+ */
+function determineTriadQuality(root: string, third: string, fifth: string): ChordQuality {
+  const rootNote = Note.get(root);
+  const thirdNote = Note.get(third);
+  const fifthNote = Note.get(fifth);
+
+  // Calculate semitone distances
+  const thirdInterval = (Note.chroma(thirdNote.pc)! - Note.chroma(rootNote.pc)! + 12) % 12;
+  const fifthInterval = (Note.chroma(fifthNote.pc)! - Note.chroma(rootNote.pc)! + 12) % 12;
+
+  // Determine quality based on intervals
+  const isMajorThird = thirdInterval === 4;
+  const isMinorThird = thirdInterval === 3;
+  const isPerfectFifth = fifthInterval === 7;
+  const isDiminishedFifth = fifthInterval === 6;
+  const isAugmentedFifth = fifthInterval === 8;
+
+  if (isMajorThird && isPerfectFifth) return 'major';
+  if (isMinorThird && isPerfectFifth) return 'minor';
+  if (isMinorThird && isDiminishedFifth) return 'diminished';
+  if (isMajorThird && isAugmentedFifth) return 'augmented';
+
+  // Default to major if we can't determine
+  return 'major';
 }

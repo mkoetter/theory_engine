@@ -47,3 +47,31 @@ export interface ChordClassification {
   origin: OriginTag;
   quality: string;
 }
+
+// Circle of Fifths types
+
+export type ChordQuality = "major" | "minor" | "diminished" | "augmented";
+
+export interface CircleNote {
+  note: string;
+  position: number;
+  isDiatonic: boolean;
+}
+
+export interface CircleDegree {
+  position: number;
+  roman: string;
+  isTonic: boolean;
+}
+
+export interface CircleChordQuality {
+  position: number;
+  quality: ChordQuality;
+}
+
+export interface CircleOfFifthsData {
+  notes: CircleNote[];
+  degrees: CircleDegree[];
+  chordQualities: CircleChordQuality[];
+  tonicPosition: number;
+}
