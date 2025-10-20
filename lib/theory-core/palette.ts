@@ -17,10 +17,10 @@ export function buildPalette(
     const majorKey = Key.majorKey(tonic);
     if (!majorKey) return [];
 
-    // Get triads or seventh chords
+    // Get triads or seventh chords (convert readonly arrays to mutable)
     return sevenths
       ? majorKey.chords.map((chord) => chord.includes('7') ? chord : `${chord}maj7`)
-      : majorKey.triads;
+      : [...majorKey.triads];
   }
 
   if (mode === 'minor') {
