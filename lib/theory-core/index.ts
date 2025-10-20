@@ -9,6 +9,9 @@
 import { buildPalette } from './palette';
 import { romansToAbsolute, absoluteToRomans, parseRoman } from './convert';
 import { classifyChord } from './classify';
+import { analyzeFunctionalLabel, detectCadences } from './analysis';
+import { calculateTensionCurve } from './tension';
+import { planTransition as planKeyTransition } from './transition';
 import type {
   BlockKey,
   ChordClassification,
@@ -41,15 +44,33 @@ export function createTheoryCore(): TheoryCore {
     absoluteToRomans,
     classifyChord,
 
-    // Placeholder implementations for Milestone 2
+    // Full implementations for Milestone 2
     analyzeProgression(romans: string[], key: BlockKey): ProgressionAnalysis {
-      // TODO: Implement full functional analysis, tension curves, cadence detection
+      // Analyze functional labels for each chord
+      const functions = romans.map(roman => analyzeFunctionalLabel(roman, key));
+
+      // Detect cadences
+      const cadenceHints = detectCadences(romans, key);
+
+      // Calculate tension curve
+      const tension = calculateTensionCurve(romans, key);
+
+      // Count borrowed and secondary chords
+      let borrowedCount = 0;
+      let secondaryCount = 0;
+
+      romans.forEach(roman => {
+        const classification = classifyChord(roman, key);
+        if (classification.origin === 'borrowed') borrowedCount++;
+        if (classification.origin === 'secondary') secondaryCount++;
+      });
+
       return {
-        functions: romans.map(() => 'T' as const), // Simplified
-        cadenceHints: [],
-        tension: [],
-        borrowedCount: 0,
-        secondaryCount: 0,
+        functions,
+        cadenceHints,
+        tension,
+        borrowedCount,
+        secondaryCount,
       };
     },
 
@@ -58,18 +79,35 @@ export function createTheoryCore(): TheoryCore {
       key: BlockKey,
       style?: "pop" | "jazz" | "folk"
     ): string[] {
-      // TODO: Implement context-aware suggestions
-      // For now, return common progressions
-      return ['IV', 'V', 'vi', 'I'];
+      // Context-aware suggestions based on last chord
+      if (ctxRomans.length === 0) {
+        return key.mode === 'major' ? ['I', 'IV', 'V', 'vi'] : ['i', 'iv', 'v', 'VI'];
+      }
+
+      const lastChord = ctxRomans[ctxRomans.length - 1];
+      const lastFunc = analyzeFunctionalLabel(lastChord, key);
+
+      // Suggest based on functional progression
+      if (lastFunc === 'T') {
+        // From tonic, go to subdominant or dominant
+        return key.mode === 'major' ? ['IV', 'ii', 'V', 'vi'] : ['iv', 'ii°', 'V', 'VI'];
+      }
+
+      if (lastFunc === 'SD') {
+        // From subdominant, go to dominant or tonic
+        return key.mode === 'major' ? ['V', 'I', 'vi'] : ['V', 'i', 'VI'];
+      }
+
+      if (lastFunc === 'D') {
+        // From dominant, resolve to tonic or deceptive cadence
+        return key.mode === 'major' ? ['I', 'vi', 'IV'] : ['i', 'VI', 'iv'];
+      }
+
+      return key.mode === 'major' ? ['I', 'IV', 'V', 'vi'] : ['i', 'iv', 'V', 'VI'];
     },
 
     planTransition(from: BlockKey, to: BlockKey): TransitionPlan {
-      // TODO: Implement pivot chord and secondary dominant logic
-      return {
-        type: 'direct',
-        chords: [],
-        notes: 'Direct modulation (transition logic coming in Milestone 2)',
-      };
+      return planKeyTransition(from, to);
     },
   };
 }
