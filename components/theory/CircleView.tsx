@@ -115,8 +115,8 @@ export function CircleView({ circleData, currentKey }: CircleViewProps) {
       style={{ border: '1px solid #ddd', borderRadius: '8px', background: 'white' }}
     >
       {/* Chord Ring (Outer) */}
-      {chordQualities.map((chord) => (
-        <g key={`chord-${chord.position}`}>
+      {chordQualities.map((chord, idx) => (
+        <g key={`chord-${idx}-${chord.position}`}>
           <path
             d={createSegmentPath(chord.position, noteRingRadius + 10, outerRadius)}
             fill={getChordQualityColor(chord.quality)}
@@ -138,8 +138,8 @@ export function CircleView({ circleData, currentKey }: CircleViewProps) {
       ))}
 
       {/* Note Ring (Middle) */}
-      {notes.map((note) => (
-        <g key={`note-${note.position}`}>
+      {notes.map((note, idx) => (
+        <g key={`note-${idx}-${note.position}`}>
           <path
             d={createSegmentPath(note.position, degreeRingRadius + 10, noteRingRadius)}
             fill={note.isDiatonic ? 'white' : '#E0E0E0'}
@@ -161,8 +161,8 @@ export function CircleView({ circleData, currentKey }: CircleViewProps) {
       ))}
 
       {/* Degree Ring (Inner) */}
-      {degrees.map((degree) => (
-        <g key={`degree-${degree.position}`}>
+      {degrees.map((degree, idx) => (
+        <g key={`degree-${idx}-${degree.position}`}>
           <path
             d={createSegmentPath(degree.position, innerRadius, degreeRingRadius)}
             fill="white"
