@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CircleView } from '@/components/theory/CircleView';
 import { TonicTable } from '@/components/theory/TonicTable';
 import { ModeTable } from '@/components/theory/ModeTable';
@@ -16,6 +16,12 @@ export default function CirclePage() {
     tonic: 'C',
     mode: 'major',
   });
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const theoryCore = useMemo(() => createTheoryCore(), []);
 
@@ -58,7 +64,13 @@ export default function CirclePage() {
 
         {/* Right panel: Circle visualization */}
         <div>
-          <CircleView circleData={circleData} currentKey={currentKey} />
+          {mounted ? (
+            <CircleView circleData={circleData} currentKey={currentKey} />
+          ) : (
+            <div style={{ width: '600px', height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: '8px' }}>
+              Loading circle...
+            </div>
+          )}
 
           <div
             style={{
