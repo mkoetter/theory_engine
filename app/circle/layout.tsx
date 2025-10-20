@@ -1,32 +1,12 @@
 import Link from 'next/link';
-import { TheoryPanel } from '@/components/theory/TheoryPanel';
-import type { Block } from '@/state/theory.types';
 
-// Example block for demonstration
-const exampleBlock: Block = {
-  id: 'verse-1',
-  role: 'Verse',
-  key: {
-    tonic: 'C',
-    mode: 'major',
-  },
-  palette: {
-    source: 'mode',
-    includeSevenths: false,
-    romans: [],
-    extras: [],
-  },
-  progression: [
-    { roman: 'I', bars: 2 },
-    { roman: 'V', bars: 1 },
-    { roman: 'vi', bars: 1 },
-    { roman: 'IV', bars: 2 },
-  ],
-};
-
-export default function Home() {
+export default function CircleLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <main>
+    <>
       {/* Navigation */}
       <div style={{ padding: '1rem 2rem', background: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
         <nav style={{ display: 'flex', gap: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -34,8 +14,9 @@ export default function Home() {
             href="/"
             style={{
               padding: '0.5rem 1rem',
-              background: '#2196F3',
-              color: 'white',
+              background: 'white',
+              color: '#333',
+              border: '1px solid #ddd',
               borderRadius: '4px',
               textDecoration: 'none',
               fontSize: '0.875rem',
@@ -48,9 +29,8 @@ export default function Home() {
             href="/circle"
             style={{
               padding: '0.5rem 1rem',
-              background: 'white',
-              color: '#333',
-              border: '1px solid #ddd',
+              background: '#2196F3',
+              color: 'white',
               borderRadius: '4px',
               textDecoration: 'none',
               fontSize: '0.875rem',
@@ -61,8 +41,7 @@ export default function Home() {
           </Link>
         </nav>
       </div>
-
-      <TheoryPanel initialBlock={exampleBlock} />
-    </main>
+      {children}
+    </>
   );
 }
