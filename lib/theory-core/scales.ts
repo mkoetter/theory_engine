@@ -34,8 +34,27 @@ import { Scale, Note, Interval } from 'tonal';
 // ============================================================
 
 /**
+ * Standard mode names for quick access.
+ * Cached as constant for performance in compatibility checks.
+ */
+const STANDARD_MODES = Object.freeze([
+  'major', 'minor', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian'
+]);
+
+/**
+ * Chromatic notes for scale lookup operations.
+ * Cached to avoid repeated array creation.
+ */
+const CHROMATIC_NOTES = Object.freeze([
+  'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'
+]);
+
+/**
  * Exotic and world scales not commonly found in Western music.
  * Each entry includes the scale name and its interval pattern.
+ *
+ * PERFORMANCE NOTE: This object is frozen for optimization. The interval
+ * patterns are pre-calculated and reused across all scale operations.
  */
 export const EXOTIC_SCALES = Object.freeze({
   // Pentatonic variations
@@ -268,14 +287,8 @@ export function getCompatibleScales(tonic: string, mode: string): CompatibleScal
   const sourceNotes = new Set(sourceScale.notes.map(n => Note.chroma(n)));
   const compatible: CompatibleScale[] = [];
 
-  // Get all standard modes
-  const standardModes = ['major', 'minor', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian'];
-
-  // Get all exotic scales
-  const exoticScales = getExoticScales();
-
-  // Combine all scales to check
-  const allScales = [...standardModes, ...exoticScales];
+  // Combine all scales to check (using pre-allocated constants for performance)
+  const allScales = [...STANDARD_MODES, ...Object.keys(EXOTIC_SCALES)];
 
   for (const scaleName of allScales) {
     try {
@@ -358,18 +371,10 @@ export function getScalesContainingNotes(notes: string[]): string[] {
   const targetChromas = new Set(notes.map(n => Note.chroma(n)));
   const matchingScales: string[] = [];
 
-  // Check all chromatic notes as potential tonics
-  const chromaticNotes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+  // Use pre-allocated constants for performance
+  const allScales = [...STANDARD_MODES, ...Object.keys(EXOTIC_SCALES)];
 
-  // Check standard modes
-  const standardModes = ['major', 'minor', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian'];
-
-  // Check exotic scales
-  const exoticScales = getExoticScales();
-
-  const allScales = [...standardModes, ...exoticScales];
-
-  for (const root of chromaticNotes) {
+  for (const root of CHROMATIC_NOTES) {
     for (const scaleName of allScales) {
       try {
         const scale = getScaleInfo(root, scaleName);
