@@ -15,6 +15,7 @@
  */
 
 import { Fingering, DiagramOptions } from './types';
+import { Note } from 'tonal';
 
 // ============================================================
 // CONSTANTS
@@ -40,6 +41,10 @@ const STRING_SPACING = 28;
 const FRET_HEIGHT = 35;
 const DOT_RADIUS = 10;
 const OPEN_CIRCLE_RADIUS = 6;
+
+// Color constants
+const TONIC_COLOR = '#D4A574'; // Gold/tan color for root notes
+const DEFAULT_DOT_COLOR = '#333333'; // Default dark color for other notes
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -91,6 +96,36 @@ function detectBarres(fingering: Fingering): Array<{ fromString: number; toStrin
   return barres;
 }
 
+/**
+ * Determine which strings contain the root/tonic note.
+ * Standard guitar tuning: E A D G B E (strings 0-5, low to high)
+ */
+function getRootStrings(fingering: Fingering): Set<number> {
+  const rootStrings = new Set<number>();
+  const standardTuning = ['E', 'A', 'D', 'G', 'B', 'E']; // 6th to 1st string
+
+  for (let stringIndex = 0; stringIndex < fingering.frets.length; stringIndex++) {
+    const fret = fingering.frets[stringIndex];
+
+    if (fret === 0) {
+      // Open string - check if open string note matches root
+      const openNote = standardTuning[stringIndex];
+      if (Note.chroma(openNote) === Note.chroma(fingering.root)) {
+        rootStrings.add(stringIndex);
+      }
+    } else if (typeof fret === 'number' && fret > 0) {
+      // Fretted note - calculate the note at this fret
+      const openNote = standardTuning[stringIndex];
+      const frettedNote = Note.transpose(openNote, `${fret}P`); // Transpose by perfect intervals
+      if (Note.chroma(frettedNote) === Note.chroma(fingering.root)) {
+        rootStrings.add(stringIndex);
+      }
+    }
+  }
+
+  return rootStrings;
+}
+
 // ============================================================
 // SVG GENERATION
 // ============================================================
@@ -111,10 +146,15 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
   try {
     const activeFrets = fingering.frets.filter((f): f is number => typeof f === 'number' && f > 0);
     const minFret = activeFrets.length > 0 ? Math.min(...activeFrets) : 1;
-    const baseFret = fingering.baseFret || (minFret > 1 ? minFret : 1);
+    const maxFret = activeFrets.length > 0 ? Math.max(...activeFrets) : 1;
+
+    // Determine if this is an open position chord (fits within first 5 frets from nut)
+    const isOpenPosition = maxFret <= opts.fretCount;
+    const baseFret = isOpenPosition ? 1 : (fingering.baseFret || minFret);
     const displayFrets = opts.fretCount;
 
     const barres = detectBarres(fingering);
+    const rootStrings = getRootStrings(fingering);
 
     // Calculate dimensions
     const nutHeight = 8;
@@ -132,8 +172,8 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
     // Draw title
     svg += `<text x="${svgWidth / 2}" y="30" text-anchor="middle" font-size="24" font-weight="bold" fill="#333">${fingering.root}${fingering.type}</text>`;
 
-    // Draw position marker if not open position
-    if (baseFret > 1) {
+    // Draw position marker only if NOT in open position
+    if (!isOpenPosition && baseFret > 1) {
       svg += `<text x="${DIAGRAM_PADDING - 20}" y="${topMargin + FRET_HEIGHT / 2}" text-anchor="end" font-size="14" fill="#666">${baseFret}fr</text>`;
     }
 
@@ -163,13 +203,16 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
       const x = startX + i * STRING_SPACING;
       const y = startY - 20;
       const fret = fingering.frets[i];
+      const isRoot = rootStrings.has(i);
 
       if (fret === 'x') {
         // Muted string (X)
         svg += `<text x="${x}" y="${y}" text-anchor="middle" font-size="18" font-weight="bold" fill="#999">×</text>`;
       } else if (fret === 0) {
-        // Open string (O)
-        svg += `<circle cx="${x}" cy="${y}" r="${OPEN_CIRCLE_RADIUS}" fill="none" stroke="#333" stroke-width="2"/>`;
+        // Open string (O) - use tonic color if this is a root note
+        const strokeColor = isRoot ? TONIC_COLOR : '#333';
+        const strokeWidth = isRoot ? 3 : 2;
+        svg += `<circle cx="${x}" cy="${y}" r="${OPEN_CIRCLE_RADIUS}" fill="${isRoot ? TONIC_COLOR : 'none'}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
       }
     }
 
@@ -190,6 +233,7 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
     for (let i = 0; i < 6; i++) {
       const fret = fingering.frets[i];
       const finger = fingering.fingers[i];
+      const isRoot = rootStrings.has(i);
 
       if (typeof fret === 'number' && fret > 0) {
         const fretNum = baseFret > 1 ? fret - baseFret + 1 : fret;
@@ -204,8 +248,9 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
           const x = startX + i * STRING_SPACING;
           const y = startY + (baseFret === 1 ? nutHeight : 0) + (fretNum - 0.5) * FRET_HEIGHT;
 
-          // Draw dot
-          svg += `<circle cx="${x}" cy="${y}" r="${DOT_RADIUS}" fill="${opts.color}"/>`;
+          // Draw dot - use tonic color if this is a root note
+          const dotColor = isRoot ? TONIC_COLOR : opts.color;
+          svg += `<circle cx="${x}" cy="${y}" r="${DOT_RADIUS}" fill="${dotColor}"/>`;
 
           // Draw finger number
           if (opts.showFingers && finger > 0) {
