@@ -114,28 +114,35 @@ export function CircleView({ circleData, currentKey }: CircleViewProps) {
       viewBox="0 0 600 600"
       style={{ border: '1px solid #ddd', borderRadius: '8px', background: 'white' }}
     >
-      {/* Chord Ring (Outer) */}
-      {chordQualities.map((chord, idx) => (
-        <g key={`chord-${idx}-${chord.position}`}>
-          <path
-            d={createSegmentPath(chord.position, noteRingRadius + 10, outerRadius)}
-            fill={getChordQualityColor(chord.quality)}
-            stroke="#333"
-            strokeWidth="1"
-          />
-          <text
-            x={getPolarPoint(chord.position + 0.5, (noteRingRadius + outerRadius) / 2).x}
-            y={getPolarPoint(chord.position + 0.5, (noteRingRadius + outerRadius) / 2).y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize="10"
-            fontWeight="600"
-            fill="#333"
-          >
-            {getChordQualityLabel(chord.quality)}
-          </text>
-        </g>
-      ))}
+      {/* Chord Ring (Outer) - Always 12 segments */}
+      {Array.from({ length: 12 }).map((_, position) => {
+        // Find if there's a chord quality for this position
+        const chord = chordQualities.find((c) => c.position === position);
+
+        return (
+          <g key={`chord-${position}`}>
+            <path
+              d={createSegmentPath(position, noteRingRadius + 10, outerRadius)}
+              fill={chord ? getChordQualityColor(chord.quality) : '#E0E0E0'}
+              stroke="#333"
+              strokeWidth="1"
+            />
+            {chord && (
+              <text
+                x={getPolarPoint(position + 0.5, (noteRingRadius + outerRadius) / 2).x}
+                y={getPolarPoint(position + 0.5, (noteRingRadius + outerRadius) / 2).y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize="10"
+                fontWeight="600"
+                fill="#333"
+              >
+                {getChordQualityLabel(chord.quality)}
+              </text>
+            )}
+          </g>
+        );
+      })}
 
       {/* Note Ring (Middle) */}
       {notes.map((note, idx) => (
@@ -160,40 +167,49 @@ export function CircleView({ circleData, currentKey }: CircleViewProps) {
         </g>
       ))}
 
-      {/* Degree Ring (Inner) */}
-      {degrees.map((degree, idx) => (
-        <g key={`degree-${idx}-${degree.position}`}>
-          <path
-            d={createSegmentPath(degree.position, innerRadius, degreeRingRadius)}
-            fill="white"
-            stroke="#333"
-            strokeWidth="1"
-          />
-          <text
-            x={getPolarPoint(degree.position + 0.5, (innerRadius + degreeRingRadius) / 2).x}
-            y={getPolarPoint(degree.position + 0.5, (innerRadius + degreeRingRadius) / 2).y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize="16"
-            fontWeight="600"
-            fill="#000"
-          >
-            {degree.roman}
-          </text>
+      {/* Degree Ring (Inner) - Always 12 segments */}
+      {Array.from({ length: 12 }).map((_, position) => {
+        // Find if there's a degree for this position
+        const degree = degrees.find((d) => d.position === position);
 
-          {/* Tonic arrow */}
-          {degree.isTonic && (
-            <polygon
-              points={`
-                ${getPolarPoint(degree.position + 0.5, innerRadius - 15).x},${getPolarPoint(degree.position + 0.5, innerRadius - 15).y}
-                ${getPolarPoint(degree.position + 0.5, innerRadius - 25).x - 5},${getPolarPoint(degree.position + 0.5, innerRadius - 25).y}
-                ${getPolarPoint(degree.position + 0.5, innerRadius - 25).x + 5},${getPolarPoint(degree.position + 0.5, innerRadius - 25).y}
-              `}
-              fill="black"
+        return (
+          <g key={`degree-${position}`}>
+            <path
+              d={createSegmentPath(position, innerRadius, degreeRingRadius)}
+              fill="white"
+              stroke="#333"
+              strokeWidth="1"
             />
-          )}
-        </g>
-      ))}
+            {degree && (
+              <>
+                <text
+                  x={getPolarPoint(position + 0.5, (innerRadius + degreeRingRadius) / 2).x}
+                  y={getPolarPoint(position + 0.5, (innerRadius + degreeRingRadius) / 2).y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize="16"
+                  fontWeight="600"
+                  fill="#000"
+                >
+                  {degree.roman}
+                </text>
+
+                {/* Tonic arrow */}
+                {degree.isTonic && (
+                  <polygon
+                    points={`
+                      ${getPolarPoint(position + 0.5, innerRadius - 15).x},${getPolarPoint(position + 0.5, innerRadius - 15).y}
+                      ${getPolarPoint(position + 0.5, innerRadius - 25).x - 5},${getPolarPoint(position + 0.5, innerRadius - 25).y}
+                      ${getPolarPoint(position + 0.5, innerRadius - 25).x + 5},${getPolarPoint(position + 0.5, innerRadius - 25).y}
+                    `}
+                    fill="black"
+                  />
+                )}
+              </>
+            )}
+          </g>
+        );
+      })}
 
       {/* Center circle */}
       <circle cx={centerX} cy={centerY} r={innerRadius} fill="white" stroke="#333" strokeWidth="2" />
