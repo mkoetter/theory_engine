@@ -29,7 +29,31 @@
  * ```
  */
 
-import { Note, Chord } from 'tonal';
+import { Note, Chord, Scale } from 'tonal';
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+/**
+ * Roman numeral to scale degree mapping.
+ * Extracted as constant for reuse and performance.
+ */
+const ROMAN_TO_DEGREE: Readonly<Record<string, number>> = Object.freeze({
+  'i': 1, 'I': 1,
+  'ii': 2, 'II': 2,
+  'iii': 3, 'III': 3,
+  'iv': 4, 'IV': 4,
+  'v': 5, 'V': 5,
+  'vi': 6, 'VI': 6,
+  'vii': 7, 'VII': 7,
+});
+
+/**
+ * Regex pattern for parsing Roman numerals with extensions.
+ * Compiled once for performance.
+ */
+const ROMAN_NUMERAL_PATTERN = /^([b#]?)([ivIV]+)(.*)$/;
 
 /**
  * Extended chord structure with full harmonic information.
@@ -107,21 +131,38 @@ export interface SlashChord {
  * // => { root: 'A', quality: 'minor', bass: 'C', ... }
  */
 export function parseExtendedChord(symbol: string): ExtendedChord {
+  // Input validation
+  if (!symbol || typeof symbol !== 'string') {
+    throw new Error('Chord symbol must be a non-empty string');
+  }
+
+  const trimmedSymbol = symbol.trim();
+  if (!trimmedSymbol) {
+    throw new Error('Chord symbol cannot be empty');
+  }
+
   // Handle slash chords first
   let bassNote: string | undefined;
-  let chordPart = symbol;
+  let chordPart = trimmedSymbol;
 
-  if (symbol.includes('/')) {
-    const [chord, bass] = symbol.split('/');
-    chordPart = chord.trim();
-    bassNote = bass.trim();
+  if (trimmedSymbol.includes('/')) {
+    const parts = trimmedSymbol.split('/');
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      throw new Error(`Invalid slash chord format: ${trimmedSymbol}`);
+    }
+    chordPart = parts[0].trim();
+    bassNote = parts[1].trim();
   }
 
   // Use Tonal.js to parse the chord
   const chord = Chord.get(chordPart);
 
   if (!chord.tonic) {
-    throw new Error(`Invalid chord symbol: ${symbol}`);
+    throw new Error(`Invalid chord symbol: ${trimmedSymbol}`);
+  }
+
+  if (chord.notes.length === 0) {
+    throw new Error(`Chord has no notes: ${trimmedSymbol}`);
   }
 
   // Determine base quality
@@ -133,8 +174,14 @@ export function parseExtendedChord(symbol: string): ExtendedChord {
   // Get all notes
   let notes = chord.notes;
   if (bassNote) {
-    // Move bass note to bottom
-    notes = [bassNote, ...notes.filter(n => Note.chroma(n) !== Note.chroma(bassNote))];
+    // Validate bass note
+    const bassChroma = Note.chroma(bassNote);
+    if (bassChroma === undefined) {
+      throw new Error(`Invalid bass note: ${bassNote}`);
+    }
+
+    // Move bass note to bottom (remove duplicates by chroma)
+    notes = [bassNote, ...notes.filter(n => Note.chroma(n) !== bassChroma)];
   }
 
   return {
@@ -144,7 +191,7 @@ export function parseExtendedChord(symbol: string): ExtendedChord {
     alterations,
     addedTones,
     bass: bassNote,
-    symbol,
+    symbol: trimmedSymbol,
     notes,
   };
 }
@@ -167,20 +214,45 @@ export function parseExtendedChord(symbol: string): ExtendedChord {
  * // => { chord: 'Am7', bass: 'C', symbol: 'Am7/C', inversion: 2, notes: ['C', 'A', 'E', 'G'] }
  */
 export function createSlashChord(chordSymbol: string, bassNote: string): SlashChord {
-  const chord = Chord.get(chordSymbol);
+  // Input validation
+  if (!chordSymbol || typeof chordSymbol !== 'string') {
+    throw new Error('Chord symbol must be a non-empty string');
+  }
 
+  if (!bassNote || typeof bassNote !== 'string') {
+    throw new Error('Bass note must be a non-empty string');
+  }
+
+  const trimmedChord = chordSymbol.trim();
+  const trimmedBass = bassNote.trim();
+
+  if (!trimmedChord || !trimmedBass) {
+    throw new Error('Chord symbol and bass note cannot be empty');
+  }
+
+  // Parse chord
+  const chord = Chord.get(trimmedChord);
   if (!chord.tonic) {
-    throw new Error(`Invalid chord: ${chordSymbol}`);
+    throw new Error(`Invalid chord: ${trimmedChord}`);
+  }
+
+  if (chord.notes.length === 0) {
+    throw new Error(`Chord has no notes: ${trimmedChord}`);
+  }
+
+  // Validate bass note
+  const bassChroma = Note.chroma(trimmedBass);
+  if (bassChroma === undefined) {
+    throw new Error(`Invalid bass note: ${trimmedBass}`);
   }
 
   // Find which degree the bass note is
-  const bassChroma = Note.chroma(bassNote);
   const chordChromas = chord.notes.map(n => Note.chroma(n));
   const inversionIndex = chordChromas.indexOf(bassChroma);
 
-  // Determine inversion
+  // Determine inversion and reorder notes
   let inversion = 0;
-  let notes = chord.notes;
+  let notes: string[];
 
   if (inversionIndex >= 0) {
     // Bass note is part of the chord - it's a true inversion
@@ -189,13 +261,13 @@ export function createSlashChord(chordSymbol: string, bassNote: string): SlashCh
   } else {
     // Bass note is not part of the chord - polychord or added bass
     inversion = -1;
-    notes = [bassNote, ...chord.notes];
+    notes = [trimmedBass, ...chord.notes];
   }
 
   return {
-    chord: chordSymbol,
-    bass: bassNote,
-    symbol: `${chordSymbol}/${bassNote}`,
+    chord: trimmedChord,
+    bass: trimmedBass,
+    symbol: `${trimmedChord}/${trimmedBass}`,
     inversion,
     notes,
   };
@@ -246,38 +318,39 @@ export function validateChordSymbol(symbol: string): { isValid: boolean; error: 
  * extendedRomanToAbsolute('V7b9', 'G')    // => 'D7b9'
  */
 export function extendedRomanToAbsolute(roman: string, tonic: string): string {
-  // Parse the Roman numeral
-  const match = roman.match(/^([b#]?)([ivIV]+)(.*)$/);
-  if (!match) throw new Error(`Invalid Roman numeral: ${roman}`);
+  // Parse the Roman numeral using compiled regex
+  const match = roman.match(ROMAN_NUMERAL_PATTERN);
+  if (!match) {
+    throw new Error(`Invalid Roman numeral: ${roman}`);
+  }
 
   const [, accidental, numeralPart, extension] = match;
 
-  // Determine the degree
-  const romanMap: Record<string, number> = {
-    'i': 1, 'I': 1,
-    'ii': 2, 'II': 2,
-    'iii': 3, 'III': 3,
-    'iv': 4, 'IV': 4,
-    'v': 5, 'V': 5,
-    'vi': 6, 'VI': 6,
-    'vii': 7, 'VII': 7,
-  };
+  // Look up the degree using constant map
+  const degree = ROMAN_TO_DEGREE[numeralPart.toLowerCase()];
+  if (!degree) {
+    throw new Error(`Invalid Roman numeral: ${numeralPart}`);
+  }
 
-  const degree = romanMap[numeralPart.toLowerCase()];
-  if (!degree) throw new Error(`Invalid Roman numeral: ${numeralPart}`);
+  // Get the scale note for this degree (using Scale.get, not Chord.get)
+  const scale = Scale.get(`${tonic} major`);
+  if (!scale.notes || scale.notes.length === 0) {
+    throw new Error(`Invalid tonic: ${tonic}`);
+  }
 
-  // Get the scale note for this degree
-  const scale = Chord.get(`${tonic} major`).notes;
-  let rootNote = scale[degree - 1];
+  let rootNote = scale.notes[degree - 1];
+  if (!rootNote) {
+    throw new Error(`Invalid degree ${degree} for scale ${tonic} major`);
+  }
 
-  // Apply accidental
+  // Apply accidental if present
   if (accidental === 'b') {
     rootNote = Note.transpose(rootNote, '-1');
   } else if (accidental === '#') {
     rootNote = Note.transpose(rootNote, '1');
   }
 
-  // Determine quality from case
+  // Determine quality from case (uppercase = major, lowercase = minor)
   const isUpperCase = numeralPart === numeralPart.toUpperCase();
   const baseQuality = isUpperCase ? '' : 'm';
 
@@ -318,30 +391,45 @@ export function getChordVoicings(
     octaveRange = [3, 5],
   } = options;
 
+  // Validate inputs
+  if (octaveRange[0] < 0 || octaveRange[1] > 8 || octaveRange[0] > octaveRange[1]) {
+    throw new Error(`Invalid octave range: [${octaveRange[0]}, ${octaveRange[1]}]`);
+  }
+
   const chord = Chord.get(symbol);
-  if (!chord.tonic) throw new Error(`Invalid chord: ${symbol}`);
+  if (!chord.tonic) {
+    throw new Error(`Invalid chord: ${symbol}`);
+  }
+
+  const baseNotes = chord.notes;
+  if (baseNotes.length === 0) {
+    throw new Error(`Chord has no notes: ${symbol}`);
+  }
 
   const voicings: Array<{ name: string; notes: string[] }> = [];
-  const baseNotes = chord.notes;
 
-  // Root position
+  // Root position - always included
   voicings.push({
     name: 'Root position',
     notes: baseNotes.map((n, i) => `${n}${octaveRange[0] + Math.floor(i / 7)}`),
   });
 
-  // Inversions
-  if (inversions && baseNotes.length > 2) {
-    for (let i = 1; i < baseNotes.length; i++) {
-      const inverted = [...baseNotes.slice(i), ...baseNotes.slice(0, i)];
-      voicings.push({
-        name: `${getInversionName(i, baseNotes.length)} inversion`,
-        notes: inverted.map((n, idx) => `${n}${octaveRange[0] + Math.floor((i + idx) / 7)}`),
-      });
-    }
+  // Early return if inversions not requested or not possible
+  if (!inversions || baseNotes.length <= 2) {
+    return voicings;
   }
 
-  // TODO: Add drop voicings and open voicings
+  // Generate inversions
+  for (let i = 1; i < baseNotes.length; i++) {
+    const inverted = [...baseNotes.slice(i), ...baseNotes.slice(0, i)];
+    voicings.push({
+      name: `${getInversionName(i)} inversion`,
+      notes: inverted.map((n, idx) => `${n}${octaveRange[0] + Math.floor((i + idx) / 7)}`),
+    });
+  }
+
+  // TODO: Add drop voicings when dropVoicings === true
+  // TODO: Add open voicings when openVoicings === true
 
   return voicings;
 }
@@ -425,9 +513,11 @@ function parseChordExtensions(symbol: string): {
 
 /**
  * Get inversion name (First, Second, Third, etc.).
+ * @param index - Inversion index (1 = first, 2 = second, etc.)
+ * @returns Inversion name as string
  */
-function getInversionName(index: number, totalNotes: number): string {
-  const names = ['Root', 'First', 'Second', 'Third', 'Fourth', 'Fifth'];
+function getInversionName(index: number): string {
+  const names = ['Root', 'First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'];
   return names[index] || `${index}th`;
 }
 
