@@ -137,3 +137,71 @@ export interface ChordVoicing {
   /** Notes with octave numbers */
   notes: string[];
 }
+
+// Scale Enhancement types
+
+/**
+ * Scale characteristics for analysis and classification.
+ */
+export interface ScaleCharacteristics {
+  /** Whether the scale has symmetrical interval structure */
+  isSymmetrical: boolean;
+
+  /** Whether the scale has 5 notes (pentatonic) */
+  isPentatonic: boolean;
+
+  /** Whether the scale has 7 notes (heptatonic) */
+  isHeptatonic: boolean;
+
+  /** Whether the scale contains augmented intervals */
+  hasAugmentedIntervals: boolean;
+
+  /** Whether the scale contains diminished intervals */
+  hasDiminishedIntervals: boolean;
+
+  /** Interval pattern (e.g., "2-2-2-2-2-2" for whole tone) */
+  pattern?: string;
+}
+
+/**
+ * Complete scale information including notes, intervals, and analysis.
+ */
+export interface ScaleInfo {
+  /** Scale name */
+  name: string;
+
+  /** Root/tonic note */
+  tonic: string;
+
+  /** Array of note names in the scale */
+  notes: string[];
+
+  /** Array of intervals from root */
+  intervals: string[];
+
+  /** Number of notes in scale */
+  noteCount: number;
+
+  /** Scale characteristics */
+  characteristics: ScaleCharacteristics;
+
+  /** Aliases for this scale */
+  aliases: string[];
+}
+
+/**
+ * Compatible scale suggestion with reasoning.
+ */
+export interface CompatibleScale {
+  /** Full scale name (e.g., "C major pentatonic") */
+  name: string;
+
+  /** Scale type (e.g., "major pentatonic") */
+  type: string;
+
+  /** Reason for compatibility */
+  reason: string;
+
+  /** Number of common notes with source scale */
+  commonNotesCount: number;
+}

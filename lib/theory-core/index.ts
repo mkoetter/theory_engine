@@ -61,6 +61,15 @@ import {
   getChordVoicings,
   getExtendedChordNotes,
 } from './harmonies';
+import {
+  getScaleInfo,
+  getScaleNotes,
+  getScaleIntervals,
+  getExoticScales,
+  getCompatibleScales,
+  analyzeScale,
+  getScalesContainingNotes,
+} from './scales';
 import type {
   BlockKey,
   ChordClassification,
@@ -73,6 +82,9 @@ import type {
   ExtendedChord,
   SlashChord,
   ChordVoicing,
+  ScaleInfo,
+  ScaleCharacteristics,
+  CompatibleScale,
 } from '@/state/theory.types';
 
 /**
@@ -484,6 +496,101 @@ export interface TheoryCore {
    * // => ['C3', 'E3', 'G3', 'B3', 'D4']
    */
   getExtendedChordNotes(extended: ExtendedChord, startOctave?: number): string[];
+
+  // ============================================================
+  // SCALE ENHANCEMENTS
+  // ============================================================
+
+  /**
+   * Get comprehensive information about a scale.
+   *
+   * Returns notes, intervals, and analytical characteristics for any scale.
+   * Supports both standard and exotic scales.
+   *
+   * @param tonic - Root note of the scale
+   * @param scaleName - Name of the scale (e.g., 'major', 'blues', 'phrygian dominant')
+   * @returns Complete scale information
+   *
+   * @example
+   * getScaleInfo('C', 'major')
+   * // => { notes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'], intervals: [...], ... }
+   */
+  getScaleInfo(tonic: string, scaleName: string): ScaleInfo;
+
+  /**
+   * Get all notes in a scale as an array.
+   *
+   * @param tonic - Root note
+   * @param scaleName - Scale type
+   * @returns Array of note names
+   *
+   * @example
+   * getScaleNotes('C', 'major')
+   * // => ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+   */
+  getScaleNotes(tonic: string, scaleName: string): string[];
+
+  /**
+   * Get interval structure of a scale.
+   *
+   * @param tonic - Root note
+   * @param scaleName - Scale type
+   * @returns Array of interval notations
+   *
+   * @example
+   * getScaleIntervals('C', 'major')
+   * // => ['1P', '2M', '3M', '4P', '5P', '6M', '7M']
+   */
+  getScaleIntervals(tonic: string, scaleName: string): string[];
+
+  /**
+   * Get list of all available exotic scales.
+   *
+   * @returns Array of exotic scale names
+   *
+   * @example
+   * getExoticScales()
+   * // => ['major pentatonic', 'blues', 'whole tone', ...]
+   */
+  getExoticScales(): string[];
+
+  /**
+   * Find scales compatible with a given key.
+   *
+   * @param tonic - Root note
+   * @param mode - Mode or scale type
+   * @returns Array of compatible scales with reasoning
+   *
+   * @example
+   * getCompatibleScales('C', 'major')
+   * // => [{ name: 'C major pentatonic', reason: 'Subset of C major', ... }, ...]
+   */
+  getCompatibleScales(tonic: string, mode: string): CompatibleScale[];
+
+  /**
+   * Analyze scale for patterns and characteristics.
+   *
+   * @param tonic - Root note
+   * @param scaleName - Scale type
+   * @returns Scale characteristics object
+   *
+   * @example
+   * analyzeScale('C', 'whole tone')
+   * // => { isSymmetrical: true, isPentatonic: false, ... }
+   */
+  analyzeScale(tonic: string, scaleName: string): ScaleCharacteristics;
+
+  /**
+   * Get scales that contain a specific set of notes.
+   *
+   * @param notes - Array of note names to match
+   * @returns Array of matching scales
+   *
+   * @example
+   * getScalesContainingNotes(['C', 'E', 'G', 'B'])
+   * // => ['C major', 'C lydian', 'G major', ...]
+   */
+  getScalesContainingNotes(notes: string[]): string[];
 }
 
 /**
@@ -600,6 +707,15 @@ export function createTheoryCore(): TheoryCore {
     extendedRomanToAbsolute,
     getChordVoicings,
     getExtendedChordNotes,
+
+    // Scale Enhancement functions
+    getScaleInfo,
+    getScaleNotes,
+    getScaleIntervals,
+    getExoticScales,
+    getCompatibleScales,
+    analyzeScale,
+    getScalesContainingNotes,
   };
 }
 
@@ -627,6 +743,17 @@ export {
   getExtendedChordNotes,
 };
 
+// Export scales functions
+export {
+  getScaleInfo,
+  getScaleNotes,
+  getScaleIntervals,
+  getExoticScales,
+  getCompatibleScales,
+  analyzeScale,
+  getScalesContainingNotes,
+};
+
 // Export types
 export type {
   BlockKey,
@@ -640,4 +767,7 @@ export type {
   ExtendedChord,
   SlashChord,
   ChordVoicing,
+  ScaleInfo,
+  ScaleCharacteristics,
+  CompatibleScale,
 };
