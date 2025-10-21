@@ -28,21 +28,46 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ## Current Status
 
-**Milestone 1 (In Progress)**: MVP implementation with basic palette generation and roman numeral conversion.
+**Implemented Features:**
+- ✅ Group 1: Extended Harmonies & Inversions (extended chords, slash chords, voicings)
+- ✅ Group 2: Scale & Mode Enhancements (exotic scales, compatibility analysis)
+- 🚧 Group 6: Guitar Chord Diagrams (in progress)
 
-See `docs/theory_assistant_plan.md` for complete implementation plan.
+**Future Considerations:**
+- Group 3: Common Progressions Library
+- Group 4: Advanced Substitutions & Modulations
+- Group 5: Voice Leading Analysis
+- Group 7: Export Formats & Analysis Scoring
+
+See `docs/theory_assistant_plan.md` for complete specifications.
 
 ## Theory Core API
 
 The `TheoryCore` interface provides:
 
+**Core Functionality:**
 - `buildPalette()` - Generate diatonic chord palettes
 - `romansToAbsolute()` - Convert roman numerals to chord names
 - `absoluteToRomans()` - Convert chord names to roman numerals
 - `classifyChord()` - Classify chord origin (diatonic/borrowed/etc)
-- `analyzeProgression()` - Functional analysis (coming in Milestone 2)
-- `suggestNext()` - Context-aware chord suggestions (coming in Milestone 2)
-- `planTransition()` - Block-to-block transitions (coming in Milestone 2)
+
+**Extended Harmonies (Group 1):**
+- `parseExtendedChord()` - Parse complex chord symbols (9, 11, 13, alterations)
+- `createSlashChord()` - Create and analyze slash chords
+- `getChordVoicings()` - Generate chord voicings with octave positions
+- `extendedRomanToAbsolute()` - Convert extended roman numerals to absolute chords
+
+**Scale Enhancements (Group 2):**
+- `getScaleInfo()` - Get comprehensive scale information
+- `getExoticScales()` - Access 25+ exotic scales (blues, pentatonic, world scales)
+- `getCompatibleScales()` - Find compatible scales for improvisation
+- `analyzeScale()` - Analyze scale characteristics and patterns
+- `getScalesContainingNotes()` - Find scales matching specific notes
+
+**Guitar Chords (Group 6 - In Progress):**
+- `getChordFingerings()` - Get guitar fingerings for any chord
+- `generateChordDiagram()` - Generate SVG fretboard diagrams
+- `findAlternativeVoicings()` - Find alternative guitar voicings
 
 ## Development
 
