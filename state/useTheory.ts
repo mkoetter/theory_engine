@@ -6,7 +6,42 @@ import type { Block, BlockKey } from './theory.types';
 
 /**
  * React hook for accessing music theory operations.
- * Provides memoized theory functions for a given block.
+ *
+ * ARCHITECTURE:
+ * This is a THIN WRAPPER around the theory-core API that adds React-specific
+ * memoization and callbacks. It contains NO business logic - all theory
+ * operations are delegated to the stateless TheoryCore API.
+ *
+ * USAGE:
+ * Use this hook in React components to access theory operations with proper
+ * performance optimization (memoization) based on React dependencies.
+ *
+ * IMPORTANT:
+ * - This hook is stateless (no internal state management)
+ * - All theory logic lives in /lib/theory-core (pure functions)
+ * - This hook only provides React-optimized wrappers
+ *
+ * @param block - Current musical block state
+ * @returns Object with memoized theory functions and computed values
+ *
+ * @example
+ * ```tsx
+ * function MyComponent({ block }: { block: Block }) {
+ *   const { palette, analysis, classifyChord } = useTheory(block);
+ *
+ *   return (
+ *     <div>
+ *       <h3>Chord Palette</h3>
+ *       {palette.map(chord => (
+ *         <button key={chord}>{chord}</button>
+ *       ))}
+ *
+ *       <h3>Analysis</h3>
+ *       <p>Functions: {analysis.functions.join(', ')}</p>
+ *     </div>
+ *   );
+ * }
+ * ```
  */
 export function useTheory(block: Block) {
   // Create memoized theory core instance

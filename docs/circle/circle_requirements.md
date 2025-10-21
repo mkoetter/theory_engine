@@ -1,8 +1,16 @@
 Create a user interface that demonstrates the ability of the underlying theory engine to support an interactive circle of fifths application.  Remember the UI is a test harness.  Any capabilities need to be made in the core engine and expressed via it's API.
 
+
+
 The Circle starts out with the key of C Major selected. To choose a different tonic, click an item in the Tonic table with your mouse. Likewise, to choose a different mode, click in the Mode table. To save a lot of clicking, you can also rotate the Circle clockwise by dragging upwards in either table, and counter-clockwise by dragging downwards.
 
 The white rows in the Tonic table correspond to the fifteen classic Major key signatures that we learn about in music class, from C (seven sharps) through C (seven flats). The gray rows are more rarely used, and are included here for completeness. (When's the last time you heard a tune in E Phrygian?)
+
+As you can see, the Circle is made up of three concentric rings. The large middle ring, the Note Ring, shows the names of all of the notes in the 12-tone chromatic scale. The seven notes in the key you have selected (that is, diatonic to the key) have a white background, and the other five notes have a gray background.
+
+The innermost ring, the Degree Ring, gives, in Roman numerals, the scale degrees of the seven notes highlighted in the Note Ring. (The degree of a note is just its position in the scale, but this becomes very important when we work with chord progressions.) You'll also see a black arrow pointing out the tonic of the selected key.
+
+The outermost ring, the Chord Ring, shows you what type of three-note chord, or triad, is rooted at each of the seven notes in the selected key. For example, in C Major, the triad rooted at D (that is, D-F-A) is a minor chord, but in G Major, the triad rooted at D (D-F-A) is instead a major chord.
 
 Example 1:  @docs/example1.jpg Start with the Circle in its starting position, with C Major selected. The Note Ring shows that the notes F, C, G, D, A, E, B are diatonic to C Major. (That is, C Major has no sharps or flats in its key signature.) Put them in alphabetical order, and you have the scale C, D, E, F, G, A, B. The Degree Ring indicates the tonic (C) with a black arrow, and also shows, for instance, that G is the fifth, or dominant of this key (more on degrees later). The Chord Ring shows that in C Major, F, C, and G are major chords, D, A, and E are minor chords, and B is a diminished chord.
 

@@ -1,3 +1,39 @@
+/**
+ * Circle of Fifths Module
+ *
+ * PURPOSE:
+ * Provides all logic for Circle of Fifths visualization and analysis.
+ * Handles note positioning, diatonic detection, chord quality calculation,
+ * and enharmonic spelling for any key/mode combination.
+ *
+ * KEY CONCEPTS:
+ * - Circle positions: 0-11 indices mapping to notes in fifths order
+ * - Diatonic vs chromatic: Whether a note belongs to the key's scale
+ * - Chord quality: Major/minor/diminished/augmented triads on each degree
+ * - Mode rotation: Different modes rotate the circle relative to major
+ * - Enharmonic equivalents: G# and Ab represent the same pitch (chroma)
+ *
+ * COORDINATE SYSTEM:
+ * - Position 0 = F (starts at 7 o'clock on visual circle)
+ * - Position 1 = C (8 o'clock)
+ * - Positions increase clockwise around the circle
+ * - Position 11 = A# (6 o'clock)
+ *
+ * USAGE:
+ * This module is primarily used by UI components to render Circle of Fifths
+ * visualizations. The main entry point is getCircleOfFifthsData(), which
+ * returns all data needed for a complete visualization.
+ *
+ * @example
+ * ```typescript
+ * import { getCircleOfFifthsData } from '@/lib/theory-core/circle';
+ *
+ * const circleData = getCircleOfFifthsData({ tonic: 'C', mode: 'major' });
+ * // Use circleData.notes, circleData.degrees, circleData.chordQualities
+ * // to render the three rings of the circle
+ * ```
+ */
+
 import { Scale, Note } from 'tonal';
 import type {
   BlockKey,
@@ -10,7 +46,12 @@ import type {
 
 /**
  * The 12 chromatic notes in circle-of-fifths order.
- * Starting from F and going clockwise (adding sharps).
+ *
+ * Starting from F (position 0) and moving clockwise, adding fifths each time.
+ * Uses sharp spellings for black keys.
+ *
+ * IMPORTANT: This array defines the canonical circle order. Position indices
+ * throughout this module refer to indices in this array.
  */
 const CIRCLE_OF_FIFTHS_NOTES = [
   'F', 'C', 'G', 'D', 'A', 'E', 'B',
@@ -18,8 +59,23 @@ const CIRCLE_OF_FIFTHS_NOTES = [
 ];
 
 /**
- * Mode offsets from major in semitones.
- * Used to calculate rotation when changing modes.
+ * Mode offsets from major, measured in fifths on the circle.
+ *
+ * Each mode is a rotation of the major scale. These offsets define how many
+ * positions to shift on the circle of fifths when changing modes.
+ *
+ * THEORY:
+ * - Major/Ionian is the baseline (offset 0)
+ * - Lydian is +1 fifth from major (brighter)
+ * - Mixolydian is -1 fifth from major
+ * - Dorian is -2 fifths from major
+ * - Minor/Aeolian is -3 fifths from major
+ * - Phrygian is -4 fifths from major
+ * - Locrian is -5 fifths from major (darkest)
+ *
+ * @example
+ * C major (offset 0) has the same notes as D dorian (offset -2)
+ * because D is 2 fifths up from C on the circle.
  */
 const MODE_OFFSETS: Record<string, number> = {
   'lydian': 1,      // +1 fifth from major
@@ -34,6 +90,15 @@ const MODE_OFFSETS: Record<string, number> = {
 
 /**
  * Get all 12 chromatic notes in circle-of-fifths order.
+ *
+ * Returns a copy of the canonical note order used throughout this module.
+ * Starting from F and adding fifths clockwise: F → C → G → D → A → E → B → F# → ...
+ *
+ * @returns Array of 12 note names in circle-of-fifths order
+ *
+ * @example
+ * const notes = getCircleOfFifthsNotes();
+ * // => ['F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#']
  */
 export function getCircleOfFifthsNotes(): string[] {
   return [...CIRCLE_OF_FIFTHS_NOTES];
@@ -41,10 +106,24 @@ export function getCircleOfFifthsNotes(): string[] {
 
 /**
  * Get the position (0-11) of a note on the circle of fifths.
+ *
+ * IMPLEMENTATION NOTE:
+ * Uses Note.chroma() instead of string comparison to handle enharmonic
+ * equivalents correctly. This ensures Ab and G# map to the same position.
+ *
+ * @param note - Note name (e.g., 'C', 'F#', 'Ab')
+ * @returns Position index (0-11) in the circle, or 0 if invalid
+ *
+ * @example
+ * getNotePosition('C')   // => 1
+ * getNotePosition('G#')  // => 9
+ * getNotePosition('Ab')  // => 9 (same as G# due to enharmonic equivalence)
  */
 function getNotePosition(note: string): number {
-  const normalizedNote = Note.get(note).pc; // Get pitch class (removes octave)
-  const position = CIRCLE_OF_FIFTHS_NOTES.findIndex(n => Note.get(n).pc === normalizedNote);
+  const noteChroma = Note.chroma(note); // Get numeric pitch class (0-11), handles enharmonics
+  if (noteChroma === undefined) return 0;
+
+  const position = CIRCLE_OF_FIFTHS_NOTES.findIndex(n => Note.chroma(n) === noteChroma);
   return position >= 0 ? position : 0;
 }
 
@@ -54,11 +133,11 @@ function getNotePosition(note: string): number {
  */
 export function getDiatonicNotes(key: BlockKey): CircleNote[] {
   const scale = getScaleForKey(key);
-  const diatonicPitchClasses = scale.notes.map(note => Note.get(note).pc);
+  const diatonicChromas = scale.notes.map(note => Note.chroma(note));
 
   return CIRCLE_OF_FIFTHS_NOTES.map((note, position) => {
-    const notePitchClass = Note.get(note).pc;
-    const isDiatonic = diatonicPitchClasses.includes(notePitchClass);
+    const noteChroma = Note.chroma(note);
+    const isDiatonic = diatonicChromas.includes(noteChroma);
 
     return {
       note,
@@ -168,7 +247,44 @@ export function getEnharmonicName(note: string, preferSharps: boolean): string {
 
 /**
  * Get complete Circle of Fifths data for a given key.
- * Convenience function that returns all data needed to render the circle.
+ *
+ * PRIMARY API ENTRY POINT for Circle of Fifths visualizations.
+ * Combines all circle-related data into a single object for convenience.
+ *
+ * USAGE FOR UI COMPONENTS:
+ * This function provides all data needed to render a three-ring Circle of Fifths:
+ * 1. Outer Ring: Chord qualities (major/minor/diminished)
+ * 2. Middle Ring: 12 chromatic notes (white=diatonic, gray=chromatic)
+ * 3. Inner Ring: 7 scale degrees with Roman numerals
+ *
+ * The data is position-indexed (0-11) to match the circle coordinate system.
+ *
+ * @param key - Musical key (tonic + mode)
+ * @returns CircleOfFifthsData containing:
+ *   - notes: All 12 chromatic notes with diatonic flags
+ *   - degrees: 7 scale degrees with Roman numerals and positions
+ *   - chordQualities: 7 chord qualities (major/minor/dim/aug) with positions
+ *   - tonicPosition: Circle position (0-11) of the tonic note
+ *
+ * @example
+ * ```typescript
+ * const circleData = getCircleOfFifthsData({ tonic: 'C', mode: 'major' });
+ *
+ * // Render outer ring (chord qualities)
+ * circleData.chordQualities.forEach(({ position, quality }) => {
+ *   renderSegment(position, getColorForQuality(quality));
+ * });
+ *
+ * // Render middle ring (notes)
+ * circleData.notes.forEach(({ note, position, isDiatonic }) => {
+ *   renderNote(position, note, isDiatonic ? 'white' : 'gray');
+ * });
+ *
+ * // Render inner ring (degrees)
+ * circleData.degrees.forEach(({ position, roman, isTonic }) => {
+ *   renderDegree(position, roman, isTonic);
+ * });
+ * ```
  */
 export function getCircleOfFifthsData(key: BlockKey): CircleOfFifthsData {
   return {
