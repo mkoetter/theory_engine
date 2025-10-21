@@ -53,6 +53,14 @@ import {
   getEnharmonicName,
   getCircleOfFifthsData,
 } from './circle';
+import {
+  parseExtendedChord,
+  createSlashChord,
+  validateChordSymbol,
+  extendedRomanToAbsolute,
+  getChordVoicings,
+  getExtendedChordNotes,
+} from './harmonies';
 import type {
   BlockKey,
   ChordClassification,
@@ -62,6 +70,9 @@ import type {
   CircleDegree,
   CircleChordQuality,
   CircleOfFifthsData,
+  ExtendedChord,
+  SlashChord,
+  ChordVoicing,
 } from '@/state/theory.types';
 
 /**
@@ -368,6 +379,111 @@ export interface TheoryCore {
    * // }
    */
   getCircleOfFifthsData(key: BlockKey): CircleOfFifthsData;
+
+  // ============================================================
+  // EXTENDED HARMONIES
+  // ============================================================
+
+  /**
+   * Parse an extended chord symbol into its components.
+   *
+   * Supports comprehensive chord notation including extended chords,
+   * alterations, and slash chords.
+   *
+   * @param symbol - Chord symbol (e.g., "Cmaj9", "D7b9", "Am/C")
+   * @returns ExtendedChord object with all harmonic information
+   *
+   * @example
+   * parseExtendedChord('Cmaj9')
+   * // => { root: 'C', quality: 'major', extensions: [7, 9], ... }
+   *
+   * parseExtendedChord('D7b9#11')
+   * // => { root: 'D', quality: 'dominant', alterations: [{ degree: 9, alteration: 'b' }, ...] }
+   */
+  parseExtendedChord(symbol: string): ExtendedChord;
+
+  /**
+   * Create a slash chord from a chord and bass note.
+   *
+   * Analyzes the relationship between the chord and bass note to determine
+   * the inversion.
+   *
+   * @param chordSymbol - Main chord (e.g., 'C', 'Am7')
+   * @param bassNote - Bass note (e.g., 'E', 'C')
+   * @returns SlashChord object with inversion information
+   *
+   * @example
+   * createSlashChord('C', 'E')
+   * // => { chord: 'C', bass: 'E', symbol: 'C/E', inversion: 1, notes: ['E', 'C', 'G'] }
+   */
+  createSlashChord(chordSymbol: string, bassNote: string): SlashChord;
+
+  /**
+   * Validate if a chord symbol is properly formed.
+   *
+   * @param symbol - Chord symbol to validate
+   * @returns Object with isValid flag and error message if invalid
+   *
+   * @example
+   * validateChordSymbol('Cmaj9')  // => { isValid: true, error: null }
+   * validateChordSymbol('Z#7')    // => { isValid: false, error: 'Invalid root note' }
+   */
+  validateChordSymbol(symbol: string): { isValid: boolean; error: string | null };
+
+  /**
+   * Convert a Roman numeral with extensions to an absolute chord symbol.
+   *
+   * @param roman - Roman numeral with extensions (e.g., "Imaj9", "ii7", "V7b9")
+   * @param tonic - Key tonic
+   * @returns Absolute chord symbol with extensions
+   *
+   * @example
+   * extendedRomanToAbsolute('Imaj9', 'C')  // => 'Cmaj9'
+   * extendedRomanToAbsolute('V7b9', 'G')   // => 'D7b9'
+   */
+  extendedRomanToAbsolute(roman: string, tonic: string): string;
+
+  /**
+   * Get all possible voicings for a chord.
+   *
+   * Returns different ways to voice the same chord, including various
+   * inversions and spacings.
+   *
+   * @param symbol - Chord symbol
+   * @param options - Voicing options (range, inversions, etc.)
+   * @returns Array of voicings with note arrays
+   *
+   * @example
+   * getChordVoicings('Cmaj7', { inversions: true })
+   * // => [
+   * //   { name: 'Root position', notes: ['C3', 'E3', 'G3', 'B3'] },
+   * //   { name: 'First inversion', notes: ['E3', 'G3', 'B3', 'C4'] },
+   * //   ...
+   * // ]
+   */
+  getChordVoicings(
+    symbol: string,
+    options?: {
+      inversions?: boolean;
+      dropVoicings?: boolean;
+      openVoicings?: boolean;
+      octaveRange?: [number, number];
+    }
+  ): ChordVoicing[];
+
+  /**
+   * Get all notes for an extended chord with proper octave assignments.
+   *
+   * @param extended - ExtendedChord object
+   * @param startOctave - Starting octave number (default: 3)
+   * @returns Array of notes with octave numbers
+   *
+   * @example
+   * const chord = parseExtendedChord('Cmaj9');
+   * getExtendedChordNotes(chord, 3)
+   * // => ['C3', 'E3', 'G3', 'B3', 'D4']
+   */
+  getExtendedChordNotes(extended: ExtendedChord, startOctave?: number): string[];
 }
 
 /**
@@ -476,6 +592,14 @@ export function createTheoryCore(): TheoryCore {
     getCirclePosition,
     getEnharmonicName,
     getCircleOfFifthsData,
+
+    // Extended Harmonies functions
+    parseExtendedChord,
+    createSlashChord,
+    validateChordSymbol,
+    extendedRomanToAbsolute,
+    getChordVoicings,
+    getExtendedChordNotes,
   };
 }
 
@@ -493,6 +617,16 @@ export {
   getCircleOfFifthsData,
 };
 
+// Export harmonies functions
+export {
+  parseExtendedChord,
+  createSlashChord,
+  validateChordSymbol,
+  extendedRomanToAbsolute,
+  getChordVoicings,
+  getExtendedChordNotes,
+};
+
 // Export types
 export type {
   BlockKey,
@@ -503,4 +637,7 @@ export type {
   CircleDegree,
   CircleChordQuality,
   CircleOfFifthsData,
+  ExtendedChord,
+  SlashChord,
+  ChordVoicing,
 };
