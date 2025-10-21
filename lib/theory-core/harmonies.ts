@@ -345,9 +345,19 @@ export function extendedRomanToAbsolute(roman: string, tonic: string): string {
 
   // Apply accidental if present
   if (accidental === 'b') {
-    rootNote = Note.transpose(rootNote, '-1');
+    rootNote = Note.transpose(rootNote, '-m2'); // Minor second down (semitone down)
+    if (!rootNote) {
+      throw new Error(`Failed to apply flat accidental to note`);
+    }
+    // Ensure correct enharmonic spelling (prefer flats for 'b' accidental)
+    rootNote = Note.simplify(rootNote);
   } else if (accidental === '#') {
-    rootNote = Note.transpose(rootNote, '1');
+    rootNote = Note.transpose(rootNote, 'm2'); // Minor second up (semitone up)
+    if (!rootNote) {
+      throw new Error(`Failed to apply sharp accidental to note`);
+    }
+    // Ensure correct enharmonic spelling (prefer sharps for '#' accidental)
+    rootNote = Note.simplify(rootNote);
   }
 
   // Determine quality from case (uppercase = major, lowercase = minor)
