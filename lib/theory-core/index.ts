@@ -70,6 +70,21 @@ import {
   analyzeScale,
   getScalesContainingNotes,
 } from './scales';
+import {
+  getChordFingerings,
+  generateChordDiagram,
+  findAlternativeVoicings,
+  generateProgressionDiagrams,
+  optimizeChordProgression,
+  getOpenPositionVoicings,
+  getBarreChordVoicings,
+  getSimplestVoicings,
+  calculateChordTransitionDifficulty,
+  generateCompactDiagram,
+  getAvailableChordTypes as getAvailableGuitarChordTypes,
+  getAvailableRoots as getAvailableGuitarRoots,
+  normalizeChordRoot,
+} from './guitar-chords';
 import type {
   BlockKey,
   ChordClassification,
@@ -86,6 +101,11 @@ import type {
   ScaleCharacteristics,
   CompatibleScale,
 } from '@/state/theory.types';
+import type {
+  Fingering as GuitarFingering,
+  VoicingFilters,
+  DiagramOptions,
+} from './guitar-chords';
 
 /**
  * Enharmonic spelling policy for chord name conversion.
@@ -591,6 +611,74 @@ export interface TheoryCore {
    * // => ['C major', 'C lydian', 'G major', ...]
    */
   getScalesContainingNotes(notes: string[]): string[];
+
+  // ============================================================
+  // GUITAR CHORDS
+  // ============================================================
+
+  /**
+   * Get all available guitar fingerings for a chord symbol.
+   *
+   * @param chordSymbol - Chord symbol (e.g., "Cmaj7", "Am", "D7")
+   * @returns Array of fingerings
+   *
+   * @example
+   * getChordFingerings('Cmaj7')
+   * // => [{ root: 'C', type: 'M7', frets: ['x', 3, 2, 0, 0, 0], ... }, ...]
+   */
+  getChordFingerings(chordSymbol: string): GuitarFingering[];
+
+  /**
+   * Generate an SVG fretboard diagram for a chord.
+   *
+   * @param chordSymbol - Chord symbol
+   * @param options - Optional diagram customization
+   * @returns SVG string, or null if chord not found
+   *
+   * @example
+   * generateChordDiagram('Cmaj7', { fretCount: 5, showFingers: true })
+   * // => '<svg>...</svg>'
+   */
+  generateChordDiagram(chordSymbol: string, options?: Partial<DiagramOptions>): string | null;
+
+  /**
+   * Find alternative voicings for a chord with optional filtering.
+   *
+   * @param chordSymbol - Chord symbol
+   * @param filters - Optional voicing filters
+   * @returns Array of matching fingerings
+   *
+   * @example
+   * findAlternativeVoicings('G', { openOnly: true })
+   * // => [{ frets: [3, 2, 0, 0, 0, 3], ... }]
+   */
+  findAlternativeVoicings(chordSymbol: string, filters?: VoicingFilters): GuitarFingering[];
+
+  /**
+   * Generate chord diagrams for an entire progression.
+   *
+   * @param chordSymbols - Array of chord symbols
+   * @param options - Optional diagram customization
+   * @returns Array of SVG strings
+   *
+   * @example
+   * generateProgressionDiagrams(['C', 'Am', 'F', 'G'])
+   * // => ['<svg>...</svg>', '<svg>...</svg>', ...]
+   */
+  generateProgressionDiagrams(chordSymbols: string[], options?: Partial<DiagramOptions>): string[];
+
+  /**
+   * Optimize voicing selection for smooth chord transitions.
+   *
+   * @param chordSymbols - Array of chord symbols in progression order
+   * @param filters - Optional voicing constraints
+   * @returns Array of optimized fingerings
+   *
+   * @example
+   * optimizeChordProgression(['C', 'Am', 'F', 'G'])
+   * // => [cMajFingering, aMinFingering, fMajFingering, gMajFingering]
+   */
+  optimizeChordProgression(chordSymbols: string[], filters?: VoicingFilters): GuitarFingering[];
 }
 
 /**
@@ -716,6 +804,13 @@ export function createTheoryCore(): TheoryCore {
     getCompatibleScales,
     analyzeScale,
     getScalesContainingNotes,
+
+    // Guitar Chords functions
+    getChordFingerings,
+    generateChordDiagram,
+    findAlternativeVoicings,
+    generateProgressionDiagrams,
+    optimizeChordProgression,
   };
 }
 
@@ -754,6 +849,23 @@ export {
   getScalesContainingNotes,
 };
 
+// Export guitar chords functions
+export {
+  getChordFingerings,
+  generateChordDiagram,
+  findAlternativeVoicings,
+  generateProgressionDiagrams,
+  optimizeChordProgression,
+  getOpenPositionVoicings,
+  getBarreChordVoicings,
+  getSimplestVoicings,
+  calculateChordTransitionDifficulty,
+  generateCompactDiagram,
+  getAvailableGuitarChordTypes,
+  getAvailableGuitarRoots,
+  normalizeChordRoot,
+};
+
 // Export types
 export type {
   BlockKey,
@@ -770,4 +882,7 @@ export type {
   ScaleInfo,
   ScaleCharacteristics,
   CompatibleScale,
+  GuitarFingering,
+  VoicingFilters,
+  DiagramOptions,
 };
