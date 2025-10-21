@@ -43,3 +43,9 @@ next-env.d.ts
 
 # OS
 Thumbs.db
+
+# User data
+UCI/
+
+# Test scripts
+test-guitar-chords.js
