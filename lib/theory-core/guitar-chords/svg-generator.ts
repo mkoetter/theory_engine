@@ -104,21 +104,33 @@ function getRootStrings(fingering: Fingering): Set<number> {
   const rootStrings = new Set<number>();
   const standardTuning = ['E', 'A', 'D', 'G', 'B', 'E']; // 6th to 1st string
 
+  // Get the root note's chroma (pitch class) for comparison
+  const rootChroma = Note.chroma(fingering.root);
+  if (rootChroma === undefined) {
+    return rootStrings; // Invalid root note
+  }
+
   for (let stringIndex = 0; stringIndex < fingering.frets.length; stringIndex++) {
     const fret = fingering.frets[stringIndex];
 
     if (fret === 0) {
       // Open string - check if open string note matches root
       const openNote = standardTuning[stringIndex];
-      if (Note.chroma(openNote) === Note.chroma(fingering.root)) {
+      const openChroma = Note.chroma(openNote);
+      if (openChroma === rootChroma) {
         rootStrings.add(stringIndex);
       }
     } else if (typeof fret === 'number' && fret > 0) {
       // Fretted note - calculate the note at this fret
+      // Each fret is one semitone, so transpose by semitones
       const openNote = standardTuning[stringIndex];
-      const frettedNote = Note.transpose(openNote, `${fret}P`); // Transpose by perfect intervals
-      if (Note.chroma(frettedNote) === Note.chroma(fingering.root)) {
-        rootStrings.add(stringIndex);
+      const openChroma = Note.chroma(openNote);
+      if (openChroma !== undefined) {
+        // Calculate the chroma at this fret (add semitones and mod 12)
+        const frettedChroma = (openChroma + fret) % 12;
+        if (frettedChroma === rootChroma) {
+          rootStrings.add(stringIndex);
+        }
       }
     }
   }
