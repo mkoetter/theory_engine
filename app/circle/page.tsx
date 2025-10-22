@@ -45,7 +45,7 @@ export default function CirclePage() {
           Interactive Circle of Fifths
         </h1>
         <p style={{ color: '#666', marginTop: '0.5rem' }}>
-          by Rand Scullard (Theory Engine Implementation)
+          Visualize key relationships and diatonic chord qualities
         </p>
       </div>
 
