@@ -60,12 +60,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/theory-engine.git"
+    "url": "git+https://github.com/mkoetter/theory_engine.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/theory-engine/issues"
+    "url": "https://github.com/mkoetter/theory_engine/issues"
   },
-  "homepage": "https://github.com/yourusername/theory-engine#readme",
+  "homepage": "https://github.com/mkoetter/theory_engine#readme",
   "peerDependencies": {
     "tonal": "^6.4.0"
   },
