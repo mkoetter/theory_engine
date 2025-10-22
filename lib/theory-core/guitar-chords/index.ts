@@ -70,15 +70,41 @@ import type { Fingering, GuitarChord, VoicingFilters, DiagramOptions } from './t
  * Get all available guitar fingerings for a chord symbol.
  *
  * Returns all voicings in the database for the specified chord.
+ * Supports standard chord notation including triads, seventh chords,
+ * suspended chords, and altered chords.
+ *
+ * SUPPORTED CHORD TYPES:
+ * - Major triads: C, Cmaj, D, E, etc.
+ * - Minor triads: Cm, Am, Dm, etc.
+ * - Dominant 7th: C7, D7, E7, G7, etc.
+ * - Major 7th: Cmaj7, Dmaj7, Amaj7, etc.
+ * - Minor 7th: Cm7, Am7, Dm7, etc.
+ * - Suspended: Csus2, Dsus4, Asus4, etc.
+ * - Diminished: Edim, Bdim, etc.
+ * - Augmented: Caug, Eaug, etc.
+ *
+ * PARSING BEHAVIOR:
+ * - Uses Tonal.js for chord parsing
+ * - Checks chord aliases before quality to correctly identify types
+ * - Falls back to simpler voicings if exact match not found
+ *   (e.g., C13 → C11 → C9 → C7 → C)
  *
  * @param chordSymbol - Chord symbol (e.g., "Cmaj7", "Am", "D7")
  * @returns Array of fingerings, or empty array if chord not found
  *
  * @example
+ * // Major 7th chord
  * getChordFingerings('Cmaj7')
  * // => [
  * //   { root: 'C', type: 'M7', frets: ['x', 3, 2, 0, 0, 0], ... },
- * //   ...
+ * //   { root: 'C', type: 'M7', frets: ['x', 3, 5, 4, 5, 3], ... }
+ * // ]
+ *
+ * @example
+ * // Dominant 7th chord
+ * getChordFingerings('D7')
+ * // => [
+ * //   { root: 'D', type: '7', frets: ['x', 'x', 0, 2, 1, 2], ... }
  * // ]
  */
 export function getChordFingerings(chordSymbol: string): Fingering[] {
@@ -89,16 +115,68 @@ export function getChordFingerings(chordSymbol: string): Fingering[] {
 /**
  * Generate an SVG fretboard diagram for a chord.
  *
- * Creates a visual representation of the chord fingering.
- * Uses the easiest (lowest difficulty) voicing by default.
+ * Creates a visual representation of the chord fingering with customizable
+ * styling and interval-based color coding. Uses the easiest (lowest difficulty)
+ * voicing by default.
  *
- * @param chordSymbol - Chord symbol
+ * DIAGRAM FEATURES:
+ * - Automatic barre chord detection and visualization
+ * - Open position chords start from nut (fret 0)
+ * - Higher position chords show fret position marker
+ * - Open strings (○) and muted strings (×) clearly marked
+ * - Optional finger numbers on fretted notes
+ * - Interval-based color coding for chord tones
+ *
+ * COLOR CODING OPTIONS:
+ * - Default: Root notes highlighted in gold (#D4A574)
+ * - colorByInterval: true → Color all intervals (root, 3rd, 5th, 7th)
+ * - Customizable colors via rootColor, thirdColor, fifthColor, seventhColor
+ *
+ * @param chordSymbol - Chord symbol (e.g., "Cmaj7", "D7", "Am")
  * @param options - Optional diagram customization
+ * @param options.width - Diagram width in pixels (default: 200)
+ * @param options.height - Diagram height in pixels (default: 250)
+ * @param options.fretCount - Number of frets to display (default: 5)
+ * @param options.showFingers - Show finger numbers (default: true)
+ * @param options.rootColor - Color for root notes (default: #D4A574 gold)
+ * @param options.seventhColor - Color for 7th interval (default: same as root)
+ * @param options.thirdColor - Color for 3rd interval (default: same as color)
+ * @param options.fifthColor - Color for 5th interval (default: same as color)
+ * @param options.colorByInterval - Enable full interval coloring (default: false)
+ * @param options.color - Default color for non-interval notes (default: #333333)
  * @returns SVG string, or null if chord not found
  *
  * @example
- * generateChordDiagram('Cmaj7', { fretCount: 5, showFingers: true })
- * // => '<svg>...</svg>'
+ * // Basic diagram with default styling
+ * generateChordDiagram('Cmaj7')
+ * // => '<svg>...</svg>' with root notes in gold
+ *
+ * @example
+ * // Customized size and finger display
+ * generateChordDiagram('D7', {
+ *   width: 160,
+ *   height: 200,
+ *   showFingers: true
+ * })
+ *
+ * @example
+ * // Full interval color coding
+ * generateChordDiagram('Gmaj7', {
+ *   colorByInterval: true,
+ *   rootColor: '#D4A574',    // Gold for root
+ *   thirdColor: '#4A90E2',   // Blue for 3rd
+ *   fifthColor: '#7ED321',   // Green for 5th
+ *   seventhColor: '#F5A623', // Orange for 7th
+ * })
+ *
+ * @example
+ * // Custom root and 7th coloring only
+ * generateChordDiagram('Am7', {
+ *   colorByInterval: true,
+ *   rootColor: '#D4A574',    // Gold for root (A)
+ *   seventhColor: '#9B59B6', // Purple for 7th (G)
+ *   color: '#333333',        // Dark gray for 3rd and 5th
+ * })
  */
 export function generateChordDiagram(
   chordSymbol: string,

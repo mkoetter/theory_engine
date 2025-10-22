@@ -63,32 +63,98 @@ const CHORD_SIMPLIFICATION = Object.freeze({
  * Parse chord type from Tonal chord data.
  * Converts Tonal's chord quality notation to our database format.
  *
- * IMPORTANT: Check aliases BEFORE quality because quality is too generic.
- * For example, D7 has quality="Major" (due to major third) but should map to '7', not 'maj'.
+ * PARSING STRATEGY:
+ * We check aliases before quality because Tonal's "quality" field is based on
+ * the third interval (major/minor/augmented/diminished) which is too generic
+ * for distinguishing chord types that share the same third.
+ *
+ * CRITICAL BUG CONTEXT:
+ * - D7 (dominant 7th) has quality="Major" because it has a major third (F#)
+ * - Dmaj (major triad) also has quality="Major"
+ * - Without checking aliases first, both would map to 'maj'
+ * - But D7 has aliases=["7", "dom"] which distinguishes it
+ *
+ * ALIAS EXAMPLES:
+ * - Dmaj7: aliases=["maj7", "Δ", "ma7", "M7", "Maj7", "^7"]
+ * - D7:    aliases=["7", "dom"]
+ * - Dm7:   aliases=["m7", "min7", "-7"]
+ * - D:     aliases=["M", "^", "", "maj"]
+ *
+ * @param chord - Tonal chord object from Chord.get()
+ * @returns Chord type string matching our fingering database format
+ *          ('maj', 'min', '7', 'M7', 'm7', 'sus2', 'sus4', 'dim', 'aug')
  */
 function parseChordType(chord: ReturnType<typeof Chord.get>): string {
   const { quality, aliases } = chord;
 
-  // Check aliases FIRST - they're more specific than quality
+  // Extract first alias (most common chord symbol representation)
   const alias = aliases[0] || '';
 
-  // Look for specific patterns in the alias
+  // ============================================================
+  // STEP 1: Check aliases FIRST (specific chord types)
+  // ============================================================
+  // Order matters: check more specific patterns before generic ones
+  // (e.g., 'maj7' before '7' to avoid false matches)
+
+  // Major 7th chords (Cmaj7, CM7, CΔ)
+  // Intervals: 1, 3, 5, 7 (major seventh)
   if (alias.includes('maj7') || alias.includes('M7') || alias.includes('Δ')) return 'M7';
+
+  // Minor 7th chords (Cm7, Cmin7, C-7)
+  // Intervals: 1, ♭3, 5, ♭7 (minor third + minor seventh)
   if (alias.includes('m7') || alias.includes('min7') || alias.includes('-7')) return 'm7';
+
+  // Dominant 7th chords (C7, Cdom)
+  // Intervals: 1, 3, 5, ♭7 (major third + minor seventh)
+  // IMPORTANT: Exclude 'maj7' and 'M7' to avoid matching major sevenths
   if (alias.includes('7') && !alias.includes('maj') && !alias.includes('M')) return '7';
+
+  // Suspended 4th chords (Csus4)
+  // Intervals: 1, 4, 5 (perfect fourth replaces third)
   if (alias.includes('sus4')) return 'sus4';
+
+  // Suspended 2nd chords (Csus2)
+  // Intervals: 1, 2, 5 (major second replaces third)
   if (alias.includes('sus2')) return 'sus2';
+
+  // Diminished chords (Cdim, C°)
+  // Intervals: 1, ♭3, ♭5
   if (alias.includes('dim')) return 'dim';
+
+  // Augmented chords (Caug, C+)
+  // Intervals: 1, 3, #5
   if (alias.includes('aug')) return 'aug';
+
+  // Minor chords (Cm, Cmin, C-)
+  // Intervals: 1, ♭3, 5
   if (alias.includes('m') || alias.includes('min') || alias.includes('-')) return 'min';
 
-  // Fall back to quality if no alias match
+  // ============================================================
+  // STEP 2: Fall back to quality (generic triads)
+  // ============================================================
+  // Only used when alias doesn't contain specific chord type markers
+  // This handles basic triads like "C" which have alias=["M", "^", "", "maj"]
+
+  // Major triad (C, Cmaj)
+  // Intervals: 1, 3, 5
   if (quality === 'Major') return 'maj';
+
+  // Minor triad (Cm, Cmin)
+  // Intervals: 1, ♭3, 5
   if (quality === 'Minor') return 'min';
+
+  // Augmented triad (Caug, C+)
+  // Intervals: 1, 3, #5
   if (quality === 'Augmented') return 'aug';
+
+  // Diminished triad (Cdim, C°)
+  // Intervals: 1, ♭3, ♭5
   if (quality === 'Diminished') return 'dim';
 
-  // Default to major
+  // ============================================================
+  // STEP 3: Default to major triad
+  // ============================================================
+  // Fallback for any unrecognized chord types
   return 'maj';
 }
 
