@@ -62,17 +62,14 @@ const CHORD_SIMPLIFICATION = Object.freeze({
 /**
  * Parse chord type from Tonal chord data.
  * Converts Tonal's chord quality notation to our database format.
+ *
+ * IMPORTANT: Check aliases BEFORE quality because quality is too generic.
+ * For example, D7 has quality="Major" (due to major third) but should map to '7', not 'maj'.
  */
 function parseChordType(chord: ReturnType<typeof Chord.get>): string {
   const { quality, aliases } = chord;
 
-  // Map Tonal quality to our chord types
-  if (quality === 'Major') return 'maj';
-  if (quality === 'Minor') return 'min';
-  if (quality === 'Augmented') return 'aug';
-  if (quality === 'Diminished') return 'dim';
-
-  // Check aliases for chord type indicators
+  // Check aliases FIRST - they're more specific than quality
   const alias = aliases[0] || '';
 
   // Look for specific patterns in the alias
@@ -84,6 +81,12 @@ function parseChordType(chord: ReturnType<typeof Chord.get>): string {
   if (alias.includes('dim')) return 'dim';
   if (alias.includes('aug')) return 'aug';
   if (alias.includes('m') || alias.includes('min') || alias.includes('-')) return 'min';
+
+  // Fall back to quality if no alias match
+  if (quality === 'Major') return 'maj';
+  if (quality === 'Minor') return 'min';
+  if (quality === 'Augmented') return 'aug';
+  if (quality === 'Diminished') return 'dim';
 
   // Default to major
   return 'maj';

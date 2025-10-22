@@ -50,3 +50,5 @@ UCI/
 # Test scripts
 test-guitar-chords.js
 test-interval-colors.js
+test-d7-parsing.js
+test-d7-fix.js
