@@ -138,6 +138,61 @@ function getRootStrings(fingering: Fingering): Set<number> {
   return rootStrings;
 }
 
+/**
+ * Categorize each string by its interval relationship to the root.
+ * Returns a map of string index to interval type (root, 3rd, 5th, 7th, etc.)
+ */
+function categorizeStringsByInterval(fingering: Fingering): Map<number, string> {
+  const intervalMap = new Map<number, string>();
+  const standardTuning = ['E', 'A', 'D', 'G', 'B', 'E'];
+  const rootChroma = Note.chroma(fingering.root);
+
+  if (rootChroma === undefined) return intervalMap;
+
+  for (let stringIndex = 0; stringIndex < fingering.frets.length; stringIndex++) {
+    const fret = fingering.frets[stringIndex];
+    let noteChroma: number | undefined;
+
+    if (fret === 0) {
+      // Open string
+      noteChroma = Note.chroma(standardTuning[stringIndex]);
+    } else if (typeof fret === 'number' && fret > 0) {
+      // Fretted note
+      const openChroma = Note.chroma(standardTuning[stringIndex]);
+      if (openChroma !== undefined) {
+        noteChroma = (openChroma + fret) % 12;
+      }
+    }
+
+    if (noteChroma !== undefined) {
+      // Calculate interval from root
+      const semitones = (noteChroma - rootChroma + 12) % 12;
+
+      // Map semitones to interval names
+      switch (semitones) {
+        case 0:
+          intervalMap.set(stringIndex, 'root');
+          break;
+        case 3:
+        case 4:
+          intervalMap.set(stringIndex, '3rd');
+          break;
+        case 7:
+          intervalMap.set(stringIndex, '5th');
+          break;
+        case 10:
+        case 11:
+          intervalMap.set(stringIndex, '7th');
+          break;
+        default:
+          intervalMap.set(stringIndex, 'other');
+      }
+    }
+  }
+
+  return intervalMap;
+}
+
 // ============================================================
 // SVG GENERATION
 // ============================================================
@@ -167,6 +222,27 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
 
     const barres = detectBarres(fingering);
     const rootStrings = getRootStrings(fingering);
+    const intervalMap = opts.colorByInterval ? categorizeStringsByInterval(fingering) : new Map();
+
+    // Set up color scheme
+    const colors = {
+      root: opts.rootColor || TONIC_COLOR,
+      '7th': opts.seventhColor || opts.rootColor || TONIC_COLOR,
+      '3rd': opts.thirdColor || opts.color || DEFAULT_DOT_COLOR,
+      '5th': opts.fifthColor || opts.color || DEFAULT_DOT_COLOR,
+      other: opts.color || DEFAULT_DOT_COLOR,
+    };
+
+    // Helper to get color for a string
+    const getStringColor = (stringIndex: number): string => {
+      if (opts.colorByInterval) {
+        const interval = intervalMap.get(stringIndex) || 'other';
+        return colors[interval as keyof typeof colors] || colors.other;
+      } else {
+        // Default behavior: only color root notes
+        return rootStrings.has(stringIndex) ? colors.root : colors.other;
+      }
+    };
 
     // Calculate dimensions
     const nutHeight = 8;
@@ -215,16 +291,16 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
       const x = startX + i * STRING_SPACING;
       const y = startY - 20;
       const fret = fingering.frets[i];
-      const isRoot = rootStrings.has(i);
+      const stringColor = getStringColor(i);
+      const isColored = stringColor !== colors.other;
 
       if (fret === 'x') {
         // Muted string (X)
         svg += `<text x="${x}" y="${y}" text-anchor="middle" font-size="18" font-weight="bold" fill="#999">×</text>`;
       } else if (fret === 0) {
-        // Open string (O) - use tonic color if this is a root note
-        const strokeColor = isRoot ? TONIC_COLOR : '#333';
-        const strokeWidth = isRoot ? 3 : 2;
-        svg += `<circle cx="${x}" cy="${y}" r="${OPEN_CIRCLE_RADIUS}" fill="${isRoot ? TONIC_COLOR : 'none'}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
+        // Open string (O) - use interval color
+        const strokeWidth = isColored ? 3 : 2;
+        svg += `<circle cx="${x}" cy="${y}" r="${OPEN_CIRCLE_RADIUS}" fill="${isColored ? stringColor : 'none'}" stroke="${stringColor}" stroke-width="${strokeWidth}"/>`;
       }
     }
 
@@ -235,19 +311,10 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
       const x1 = startX + barre.fromString * STRING_SPACING;
       const x2 = startX + barre.toString * STRING_SPACING;
 
-      // Check if barre contains any root notes
-      let hasRootInBarre = false;
-      for (let stringIndex = barre.fromString; stringIndex <= barre.toString; stringIndex++) {
-        if (rootStrings.has(stringIndex) && fingering.frets[stringIndex] === barre.fret) {
-          hasRootInBarre = true;
-          break;
-        }
-      }
-
-      // Draw barre as rounded rectangle with root color if applicable
+      // Determine barre color (use first string's interval color)
+      const barreColor = getStringColor(barre.fromString);
       const barreWidth = x2 - x1;
       const barreHeight = DOT_RADIUS * 2;
-      const barreColor = hasRootInBarre ? TONIC_COLOR : opts.color;
       svg += `<rect x="${x1}" y="${y - DOT_RADIUS}" width="${barreWidth}" height="${barreHeight}" rx="${DOT_RADIUS}" fill="${barreColor}"/>`;
 
       // Draw finger number on barre if enabled
@@ -264,7 +331,6 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
     for (let i = 0; i < 6; i++) {
       const fret = fingering.frets[i];
       const finger = fingering.fingers[i];
-      const isRoot = rootStrings.has(i);
 
       if (typeof fret === 'number' && fret > 0) {
         const fretNum = baseFret > 1 ? fret - baseFret + 1 : fret;
@@ -279,8 +345,8 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
           const x = startX + i * STRING_SPACING;
           const y = startY + (baseFret === 1 ? nutHeight : 0) + (fretNum - 0.5) * FRET_HEIGHT;
 
-          // Draw dot - use tonic color if this is a root note
-          const dotColor = isRoot ? TONIC_COLOR : opts.color;
+          // Draw dot - use interval-based color
+          const dotColor = getStringColor(i);
           svg += `<circle cx="${x}" cy="${y}" r="${DOT_RADIUS}" fill="${dotColor}"/>`;
 
           // Draw finger number

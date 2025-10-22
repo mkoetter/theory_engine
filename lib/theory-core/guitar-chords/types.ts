@@ -132,10 +132,25 @@ export interface DiagramOptions {
   /** Visual style for the diagram */
   style?: 'modern' | 'classic';
 
-  /** Primary color for the diagram */
+  /** Primary color for the diagram (used for non-root notes) */
   color?: string;
 
   /** Font size for labels */
   fontSize?: number;
+
+  /** Color for root notes (default: #D4A574 gold) */
+  rootColor?: string;
+
+  /** Color for 7th notes (default: same as root) */
+  seventhColor?: string;
+
+  /** Color for 3rd notes (default: same as color) */
+  thirdColor?: string;
+
+  /** Color for 5th notes (default: same as color) */
+  fifthColor?: string;
+
+  /** Enable interval-based color coding (default: true for root only) */
+  colorByInterval?: boolean;
 }
 
