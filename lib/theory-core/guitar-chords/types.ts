@@ -139,31 +139,3 @@ export interface DiagramOptions {
   fontSize?: number;
 }
 
-/**
- * Guitar string tuning representation.
- * Future enhancement: support alternate tunings.
- */
-export interface GuitarTuning {
-  /** Tuning name (e.g., "standard", "drop-d") */
-  name: string;
-
-  /** Note names for each string (low to high) */
-  notes: string[];
-}
-
-/**
- * Barre information for fingerings that require barring.
- */
-export interface BarreInfo {
-  /** Fret where barre is applied */
-  fret: number;
-
-  /** Starting string index (0 = low E) */
-  fromString: number;
-
-  /** Ending string index (5 = high E) */
-  toString: number;
-
-  /** Finger used for barre (typically 1 for index) */
-  finger: number;
-}

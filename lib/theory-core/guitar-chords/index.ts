@@ -38,8 +38,6 @@ export type {
   GuitarChord,
   VoicingFilters,
   DiagramOptions,
-  GuitarTuning,
-  BarreInfo,
 } from './types';
 
 // ============================================================
