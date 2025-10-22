@@ -4,31 +4,37 @@ import { createTheoryCore } from '@/lib/theory-core';
 import { useState, useEffect } from 'react';
 
 /**
- * Common chords to display (50 chords covering various types)
+ * Organized chord library with categories
  */
-const COMMON_CHORDS = [
-  // Major chords
-  'C', 'D', 'E', 'F', 'G', 'A', 'B',
-  'Bb', 'Eb', 'Ab', 'Db', 'Gb',
+const CHORD_LIBRARY = {
+  'Open Position': [
+    'C', 'D', 'E', 'G', 'A',
+    'Em', 'Am', 'Dm',
+    'C7', 'D7', 'E7', 'G7', 'A7',
+    'Cmaj7', 'Dmaj7', 'Emaj7', 'Gmaj7', 'Amaj7',
+  ],
+  'Barre Chords': [
+    'F', 'Fm', 'F7', 'Fmaj7', 'Fm7',
+    'Bb', 'Bm', 'B7', 'Bmaj7', 'Bm7',
+    'Eb', 'Gm', 'Cm',
+    'Ab', 'Db', 'Gb',
+  ],
+  'Seventh Chords': [
+    'C7', 'D7', 'E7', 'F7', 'G7', 'A7', 'B7',
+    'Cmaj7', 'Dmaj7', 'Emaj7', 'Fmaj7', 'Gmaj7', 'Amaj7', 'Bmaj7',
+    'Cm7', 'Dm7', 'Em7', 'Fm7', 'Gm7', 'Am7', 'Bm7',
+  ],
+  'Sus & Special': [
+    'Csus2', 'Dsus2', 'Asus2',
+    'Dsus4', 'Asus4', 'Esus4',
+    'Edim', 'Caug',
+  ],
+};
 
-  // Minor chords
-  'Cm', 'Dm', 'Em', 'Fm', 'Gm', 'Am', 'Bm',
-
-  // Seventh chords
-  'C7', 'D7', 'E7', 'F7', 'G7', 'A7', 'B7',
-
-  // Major seventh chords
-  'Cmaj7', 'Dmaj7', 'Emaj7', 'Fmaj7', 'Gmaj7', 'Amaj7', 'Bmaj7',
-
-  // Minor seventh chords
-  'Cm7', 'Dm7', 'Em7', 'Fm7', 'Gm7', 'Am7', 'Bm7',
-
-  // Suspended chords
-  'Csus2', 'Dsus2', 'Asus2', 'Dsus4', 'Asus4', 'Esus4',
-
-  // Diminished and Augmented
-  'Edim', 'Caug',
-];
+// Flatten all chords for display
+const ALL_CHORDS = Array.from(
+  new Set(Object.values(CHORD_LIBRARY).flat())
+);
 
 interface ChordDisplay {
   symbol: string;
@@ -39,11 +45,12 @@ interface ChordDisplay {
 export default function GuitarChordsPage() {
   const [chords, setChords] = useState<ChordDisplay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All Chords');
 
   useEffect(() => {
     const theory = createTheoryCore();
 
-    const chordData = COMMON_CHORDS.map(symbol => {
+    const chordData = ALL_CHORDS.map(symbol => {
       const svg = theory.generateChordDiagram(symbol, {
         width: 160,
         height: 200,
@@ -63,6 +70,13 @@ export default function GuitarChordsPage() {
     setLoading(false);
   }, []);
 
+  // Filter chords by category
+  const filteredChords = selectedCategory === 'All Chords'
+    ? chords
+    : chords.filter(chord =>
+        CHORD_LIBRARY[selectedCategory as keyof typeof CHORD_LIBRARY]?.includes(chord.symbol)
+      );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
@@ -81,15 +95,36 @@ export default function GuitarChordsPage() {
             Guitar Chord Library
           </h1>
           <p className="text-lg text-gray-600">
-            {chords.length} common guitar chords with fingering diagrams
+            {chords.length} chords with interactive fingering diagrams
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            Powered by TheoryCore guitar-chords module
+            Root notes highlighted in <span className="font-semibold" style={{ color: '#D4A574' }}>gold</span> • Powered by TheoryCore
           </p>
         </header>
 
+        {/* Category Filter */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          {['All Chords', ...Object.keys(CHORD_LIBRARY)].map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                selectedCategory === category
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-4 text-sm text-gray-600">
+          Showing {filteredChords.length} chord{filteredChords.length !== 1 ? 's' : ''}
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {chords.map((chord) => (
+          {filteredChords.map((chord) => (
             <div
               key={chord.symbol}
               className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow"
@@ -118,14 +153,19 @@ export default function GuitarChordsPage() {
         </div>
 
         <footer className="mt-12 pt-8 border-t border-gray-200">
-          <div className="text-sm text-gray-600">
-            <p className="mb-2">
-              <strong>Note:</strong> Diagrams show placeholder information.
-              Full fretboard rendering with SVGuitar integration coming soon.
-            </p>
+          <div className="text-sm text-gray-600 space-y-2">
             <p>
-              Each chord displays: chord symbol, position, fret positions for each string,
-              and barre information where applicable.
+              <strong>Diagram Features:</strong>
+            </p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
+              <li>Root notes highlighted in <span className="font-semibold" style={{ color: '#D4A574' }}>gold color</span></li>
+              <li>Open position chords start from the nut (fret 0)</li>
+              <li>Barre chords shown with rounded bars and finger numbers</li>
+              <li>Open strings (○) and muted strings (×) clearly marked</li>
+              <li>Finger numbers displayed on fretted notes</li>
+            </ul>
+            <p className="mt-4">
+              <strong>Categories:</strong> Use the filter buttons above to view specific chord types including dedicated barre chord section.
             </p>
           </div>
         </footer>
