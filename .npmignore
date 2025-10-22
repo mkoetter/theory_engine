@@ -1,0 +1,75 @@
+# Development files
+.next/
+node_modules/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Demo application (Next.js app)
+app/
+components/
+public/
+.vercel/
+out/
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__/
+coverage/
+.playwright/
+lib/**/*.test.ts
+lib/**/*.spec.ts
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# Documentation (keep README.md)
+docs/
+CLAUDE.md
+context/
+NPM_PUBLISHING.md
+
+# Environment and config
+.env
+.env.*
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Next.js specific
+next.config.js
+next.config.mjs
+next.config.ts
+next-env.d.ts
+
+# TypeScript config (but include types in files)
+tsconfig.json
+
+# Test data
+UCI/
+test-*.js
+
+# Playwright
+playwright.config.ts
+e2e/
