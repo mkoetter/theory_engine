@@ -23,14 +23,15 @@ import { Note } from 'tonal';
 
 /**
  * Default diagram options following guitar tablature conventions.
+ * Color options (rootColor, seventhColor, etc.) are optional and handled separately.
  */
-const DEFAULT_OPTIONS: Required<DiagramOptions> = Object.freeze({
+const DEFAULT_OPTIONS = Object.freeze({
   width: 200,
   height: 250,
   fretCount: 5,
   showFingers: true,
   showNotes: false,
-  style: 'modern',
+  style: 'modern' as const,
   color: '#333333',
   fontSize: 14,
 });
@@ -368,7 +369,7 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
 /**
  * Generate error placeholder SVG when diagram generation fails.
  */
-function generateErrorSVG(fingering: Fingering, options: Required<DiagramOptions>): string {
+function generateErrorSVG(fingering: Fingering, options: Pick<DiagramOptions, 'width' | 'height'>): string {
   const fretDisplay = fingering.frets
     .map((f, i) => `${i + 1}:${f === 'x' ? 'X' : f}`)
     .join(' ');

@@ -25,8 +25,11 @@ coverage/
 lib/**/*.test.ts
 lib/**/*.spec.ts
 
-# Build artifacts
-dist/
+# Source files (compiled versions are in dist/)
+lib/
+state/
+
+# Build artifacts (keep dist/)
 build/
 *.tsbuildinfo
 
@@ -63,8 +66,9 @@ next.config.mjs
 next.config.ts
 next-env.d.ts
 
-# TypeScript config (but include types in files)
+# TypeScript config
 tsconfig.json
+tsconfig.lib.json
 
 # Test data
 UCI/

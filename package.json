@@ -2,38 +2,35 @@
   "name": "theory-engine",
   "version": "1.0.0",
   "description": "A comprehensive music theory library for JavaScript/TypeScript applications with chord analysis, scale generation, Circle of Fifths visualization, and guitar chord diagrams",
-  "main": "./lib/theory-core/index.ts",
-  "types": "./lib/theory-core/index.ts",
+  "main": "./dist/lib/theory-core/index.js",
+  "types": "./dist/lib/theory-core/index.d.ts",
   "exports": {
     ".": {
-      "import": "./lib/theory-core/index.ts",
-      "require": "./lib/theory-core/index.ts",
-      "types": "./lib/theory-core/index.ts"
+      "types": "./dist/lib/theory-core/index.d.ts",
+      "import": "./dist/lib/theory-core/index.js",
+      "require": "./dist/lib/theory-core/index.js"
     },
     "./guitar-chords": {
-      "import": "./lib/theory-core/guitar-chords/index.ts",
-      "require": "./lib/theory-core/guitar-chords/index.ts",
-      "types": "./lib/theory-core/guitar-chords/types.ts"
+      "types": "./dist/lib/theory-core/guitar-chords/index.d.ts",
+      "import": "./dist/lib/theory-core/guitar-chords/index.js",
+      "require": "./dist/lib/theory-core/guitar-chords/index.js"
     }
   },
   "files": [
-    "lib/theory-core/*.ts",
-    "lib/theory-core/guitar-chords/*.ts",
-    "state/theory.types.ts",
-    "state/useTheory.ts",
+    "dist",
     "README.md",
-    "LICENSE",
-    "!**/*.test.ts",
-    "!**/*.spec.ts"
+    "LICENSE"
   ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:lib": "tsc -p tsconfig.lib.json",
+    "clean": "rm -rf dist",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "npm run clean && npm run build:lib && npm test"
   },
   "keywords": [
     "music-theory",
