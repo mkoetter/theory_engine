@@ -26,6 +26,7 @@
     "build": "next build",
     "build:lib": "tsc -p tsconfig.lib.json",
     "clean": "rm -rf dist",
+    "prepare": "npm run build:lib",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",

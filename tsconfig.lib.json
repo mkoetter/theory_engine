@@ -1,5 +1,4 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "ES2020",
     "module": "ES2020",
@@ -14,9 +13,14 @@
     "tsBuildInfoFile": "./.tsbuildinfo",
     "moduleResolution": "node",
     "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
     "skipLibCheck": true,
     "strict": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": [
     "lib/theory-core/**/*.ts",
