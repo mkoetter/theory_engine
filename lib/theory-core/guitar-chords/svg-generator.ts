@@ -235,10 +235,29 @@ export function generateChordSVG(fingering: Fingering, options?: Partial<Diagram
       const x1 = startX + barre.fromString * STRING_SPACING;
       const x2 = startX + barre.toString * STRING_SPACING;
 
-      // Draw barre as rounded rectangle
+      // Check if barre contains any root notes
+      let hasRootInBarre = false;
+      for (let stringIndex = barre.fromString; stringIndex <= barre.toString; stringIndex++) {
+        if (rootStrings.has(stringIndex) && fingering.frets[stringIndex] === barre.fret) {
+          hasRootInBarre = true;
+          break;
+        }
+      }
+
+      // Draw barre as rounded rectangle with root color if applicable
       const barreWidth = x2 - x1;
       const barreHeight = DOT_RADIUS * 2;
-      svg += `<rect x="${x1}" y="${y - DOT_RADIUS}" width="${barreWidth}" height="${barreHeight}" rx="${DOT_RADIUS}" fill="${opts.color}"/>`;
+      const barreColor = hasRootInBarre ? TONIC_COLOR : opts.color;
+      svg += `<rect x="${x1}" y="${y - DOT_RADIUS}" width="${barreWidth}" height="${barreHeight}" rx="${DOT_RADIUS}" fill="${barreColor}"/>`;
+
+      // Draw finger number on barre if enabled
+      if (opts.showFingers) {
+        const barreCenterX = (x1 + x2) / 2;
+        const finger = fingering.fingers[barre.fromString]; // Get finger used for barre
+        if (finger > 0) {
+          svg += `<text x="${barreCenterX}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">${finger}</text>`;
+        }
+      }
     }
 
     // Draw finger positions
